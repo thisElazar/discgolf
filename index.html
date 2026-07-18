@@ -78,8 +78,9 @@
 <body>
 <header>
   <h1>🥏 Disc Golf Production Lab</h1>
-  <p>Parametric disc design grounded in PDGA-certified data — a real-time designer, a 6-DOF flight simulator,
-     the full certified-disc database, and an honest ledger of what's validated vs. estimated.</p>
+  <p>Parametric disc design grounded in PDGA-certified data: a real-time designer, a browser wind tunnel,
+     a 6-DOF flight simulator, the certified-disc database, and documentation of what is validated
+     and what is estimated.</p>
 </header>
 <nav id="nav">
   <button data-s="home" class="active">Lab home</button>
@@ -101,32 +102,33 @@
       <a class="card launch" href="disc_designer.html">
         <div class="big">Parametric Disc Designer</div>
         <p>Shape a PDGA-legal disc in real time. Start from one of 43 pro discs (Destroyer, Buzzz, Aviar…)
-           derived from certified measurements, watch legality checks live, and see the closest real discs
-           to your design.</p>
+           derived from certified measurements. Legality checks update as you drag, alongside the closest
+           real discs to your current shape.</p>
         <span class="tag">open designer →</span>
       </a>
       <a class="card launch" href="wind_tunnel.html">
         <div class="big">Wind Tunnel</div>
-        <p>Watch real fluid dynamics around your disc's cross-section — a live lattice-Boltzmann simulation
-           in your browser — and explore the raw 3-D CFD sweep: 96 geometries × 7 angles of steady RANS.</p>
+        <p>A lattice-Boltzmann flow simulation of the disc cross-section, running live in the browser with
+           force and centre-of-pressure measurement. Below it, the raw CFD sweep: 96 geometries at
+           7 angles of steady RANS.</p>
         <span class="tag">enter wind tunnel →</span>
       </a>
       <div class="card launch" data-go="db">
         <div class="big">Certified-Disc Database</div>
-        <p>Every PDGA-approved disc — <span id="homecount">2,399</span> of them — with official measurements.
-           Search by name or manufacturer, sort by any dimension.</p>
+        <p>All <span id="homecount">2,399</span> PDGA-approved discs with official measurements.
+           Search by name or manufacturer; sort by any dimension.</p>
         <span class="tag">browse database →</span>
       </div>
       <div class="card launch" data-go="sim">
         <div class="big">6-DOF Flight Simulator</div>
         <p>Hummel-style rigid-body flight simulation: gyroscopic precession, hyzer/anhyzer response,
-           stability-driven drift. Python tier — plots and cross-sections here.</p>
+           stability-driven drift. Runs in Python; plots and cross-sections shown here.</p>
         <span class="tag">view results →</span>
       </div>
       <div class="card launch" data-go="docs">
         <div class="big">Methods &amp; Sources</div>
-        <p>The honesty ledger: what's grounded in published science, what's calibrated, what's placeholder —
-           plus the PDGA technical standards and annotated bibliography.</p>
+        <p>What is grounded in published science, what is calibrated, and what is placeholder,
+           plus the PDGA technical standards and an annotated bibliography.</p>
         <span class="tag">read docs →</span>
       </div>
     </div>
@@ -137,8 +139,9 @@
         <tr><td style="padding:6px 10px">✅ <b>Data tier</b> — full PDGA certified-disc database; pro-disc presets derived from certified specs</td></tr>
         <tr><td style="padding:6px 10px">✅ <b>Calibrated flight numbers</b> — app estimate fit to 43 pro discs' manufacturer ratings, LOO-validated (<code>scripts/fit_flight_numbers.py</code>)</td></tr>
         <tr><td style="padding:6px 10px">✅ <b>Flight sim (Tier 2)</b> — 6-DOF dynamics with Hummel coefficients, calibrated to the disc-golf regime (<code>flight_sim.py</code>)</td></tr>
-        <tr><td style="padding:6px 10px">⏳ <b>CFD sweep</b> — RANS over the parametric profile for real aero coefficients (next phase)</td></tr>
-        <tr><td style="padding:6px 10px">⏳ <b>Surrogate model</b> — geometry → coefficients regression so the app predicts flight in real time</td></tr>
+        <tr><td style="padding:6px 10px">✅ <b>CFD sweep</b> — 96 geometries × 7 angles of steady RANS (k-ω SST), 669 converged solves (<code>cfd/bigsweep/</code>)</td></tr>
+        <tr><td style="padding:6px 10px">✅ <b>Surrogate model</b> — degree-2 polynomial fit of the sweep drives the designer's flight path and the wind-tunnel charts (<code>cfd_surrogate.js</code>)</td></tr>
+        <tr><td style="padding:6px 10px">⏳ <b>Spinning CFD</b> — add rotation (MRF) to the RANS runs to capture spin-dependent effects</td></tr>
       </table>
     </div>
   </section>
@@ -175,13 +178,13 @@
   <section id="sim">
     <div class="two">
       <div class="card">
-        <h2>Simulated flight paths — four presets, intermediate arm speeds</h2>
+        <h2>Simulated flight paths: four presets, intermediate arm speeds</h2>
         <img class="plot" src="flight_paths.png" alt="Simulated flight paths for putter, midrange, fairway and distance presets">
         <div class="note">Produced by <code>flight_plots.py</code> from the 6-DOF simulator. Lift-supported glide,
-          gyroscopic precession, and low-speed fade all emerge from the equations — none of it is scripted.</div>
+          gyroscopic precession, and low-speed fade emerge from the equations rather than being scripted.</div>
       </div>
       <div class="card">
-        <h2>Putter cross-section — geometry model output</h2>
+        <h2>Putter cross-section: geometry model output</h2>
         <img class="plot" src="putter_cross_section.png" alt="Parametric putter cross-section from disc_model.py">
         <div class="note">From <code>disc_model.py</code>: the same solid-of-revolution profile the designer app
           and the Grasshopper component use.</div>
@@ -189,9 +192,9 @@
     </div>
     <div class="card">
       <h2>Run it yourself</h2>
-      <div class="md"><p><code>python3 flight_sim.py</code> — single trajectory with printed touchdown stats ·
-      <code>python3 flight_plots.py</code> — regenerate the preset comparison figure ·
-      coefficients &amp; caveats in <b>Docs → Methods</b>.</p></div>
+      <div class="md"><p><code>python3 flight_sim.py</code> prints a single trajectory with touchdown stats.
+      <code>python3 flight_plots.py</code> regenerates the preset comparison figure.
+      Coefficients and caveats are in the Methods doc.</p></div>
     </div>
   </section>
 
@@ -199,7 +202,7 @@
   <section id="docs">
     <div class="card">
       <div class="doctabs" id="doctabs">
-        <button data-doc="docs/METHODS.md" class="active">Methods — what's grounded</button>
+        <button data-doc="docs/METHODS.md" class="active">Methods: what's grounded</button>
         <button data-doc="docs/PDGA_technical_standards.md">PDGA technical standards</button>
         <button data-doc="docs/SOURCES.md">Sources &amp; bibliography</button>
       </div>
@@ -264,7 +267,7 @@ function openInDesigner(d){
   location.href="disc_designer.html#disc?"+p.toString();
 }
 if(DB.length)renderDB();
-else document.getElementById("dbbody").innerHTML='<tr><td colspan="9">disc_db.js not found — run <code>scripts/build_disc_db.py</code></td></tr>';
+else document.getElementById("dbbody").innerHTML='<tr><td colspan="9">disc_db.js not found; run <code>scripts/build_disc_db.py</code></td></tr>';
 
 /* ---- minimal markdown renderer (headings, tables, lists, emphasis, code, links) ---- */
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
@@ -320,7 +323,7 @@ async function loadDoc(path){
     if(!r.ok)throw new Error(r.status);
     out.innerHTML=mdToHtml(await r.text());docLoaded=true;
   }catch(e){
-    out.innerHTML='<p>Could not load <code>'+esc(path)+'</code> — serve this folder over http '+
+    out.innerHTML='<p>Could not load <code>'+esc(path)+'</code>; serve this folder over http '+
       '(<code>python3 -m http.server</code>) rather than opening the file directly.</p>';
   }
 }

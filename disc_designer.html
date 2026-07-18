@@ -93,7 +93,7 @@
 <body>
 <header>
   <h1>Parametric Disc Designer</h1>
-  <p>Shape a PDGA-legal disc golf disc in real time — start from a pro disc you already throw. Presets are derived from PDGA-certified measurements.</p>
+  <p>Shape a PDGA-legal disc in real time, starting from a pro-disc preset derived from PDGA-certified measurements.</p>
 </header>
 
 <div class="wrap">
@@ -258,7 +258,7 @@ PARAMS.forEach(def=>{
 });
 
 const proEl=document.getElementById("prodiscs");
-if(!PRO_DISCS.length)proEl.innerHTML='<div class="hint" style="font-size:12px;color:var(--muted)">pro_discs.js not found — run <code>scripts/build_disc_db.py</code></div>';
+if(!PRO_DISCS.length)proEl.innerHTML='<div class="hint" style="font-size:12px;color:var(--muted)">pro_discs.js not found; run <code>scripts/build_disc_db.py</code></div>';
 ["Putter","Midrange","Fairway","Distance"].forEach(cls=>{
   const lbl=document.createElement("div");lbl.className="cat";lbl.textContent=cls+"s";
   proEl.appendChild(lbl);
@@ -288,7 +288,7 @@ function syncSliders(){PARAMS.forEach(d=>{sliderEls[d.k].input.value=P[d.k];});}
 
 /* ---- closest certified discs ---- */
 const DB=(typeof DISC_DB!=="undefined")?DISC_DB:[];
-document.getElementById("dbcount").textContent=DB.length?`(${DB.length} discs, PDGA database)`:"(disc_db.js not found — run scripts/build_disc_db.py)";
+document.getElementById("dbcount").textContent=DB.length?`(${DB.length} discs, PDGA database)`:"(disc_db.js not found; run scripts/build_disc_db.py)";
 function closestDiscs(mp,k){
   // distance in mm-space, each dimension scaled by a typical spread
   const q=[P.D_out_mm,mp.total_height_mm,mp.cavity_depth_mm,P.rim_width_mm];
@@ -309,7 +309,7 @@ function render(){
   const lb=document.getElementById("legalbar"),lt=document.getElementById("legaltext");
   lb.className="legalbar "+(chk.all?"ok":"no");
   const ad=activeDisc();
-  lt.innerHTML=(chk.all?"PDGA LEGAL":"OUT OF SPEC — "+chk.checks.filter(c=>!c.pass).map(c=>c.name).join(", "))
+  lt.innerHTML=(chk.all?"PDGA LEGAL":"OUT OF SPEC: "+chk.checks.filter(c=>!c.pass).map(c=>c.name).join(", "))
     +(ad?`<span class="protag">based on ${ad.mfr} ${ad.name}</span>`:"");
 
   /* cross-section */
@@ -343,7 +343,7 @@ function render(){
       <tr><th>Property</th><th>Certified</th><th>Model</th></tr>
       ${rows.map(r=>`<tr><td>${r[0]}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${r[1]}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${r[2]}</td></tr>`).join("")}
       </tbody></table>
-      <div class="note">Certified values from the PDGA database. Plate thickness, parting line, and nose radius aren't published — the model estimates them per class, so small differences are expected.</div>`;
+      <div class="note">Certified values from the PDGA database. Plate thickness, parting line, and nose radius aren't published; the model estimates them per class, so small differences are expected.</div>`;
   }else fid.innerHTML="";
 
   /* checks */
@@ -356,7 +356,7 @@ function render(){
   const cols={speed:"var(--speed)",glide:"var(--glide)",turn:"var(--turn)",fade:"var(--fade)"};
   const mfr=document.getElementById("mfrflight");
   if(ad&&ad.fl){
-    mfr.innerHTML=`<div class="flightlbl">${ad.mfr} ${ad.name} — manufacturer rating</div>
+    mfr.innerHTML=`<div class="flightlbl">${ad.mfr} ${ad.name} · manufacturer rating</div>
       <div class="flight">${["speed","glide","turn","fade"].map((k,j)=>
       `<div class="fnum" style="background:${cols[k]}"><div class="n">${ad.fl[j]}</div><div class="l">${k}</div></div>`).join("")}</div>`;
   }else mfr.innerHTML="";
@@ -513,7 +513,7 @@ fileEl.addEventListener("change",async()=>{
     const j=JSON.parse(await f.text());
     applyParams(j.params||j,j.name||"");  // accepts saved designs, cfd case files, or bare param objects
     msg("Loaded "+f.name);
-  }catch(e){msg("Couldn't load that file — "+e.message);}
+  }catch(e){msg("Couldn't load that file: "+e.message);}
 });
 document.getElementById("btn_share").addEventListener("click",async()=>{
   const q=new URLSearchParams();
@@ -522,7 +522,7 @@ document.getElementById("btn_share").addEventListener("click",async()=>{
   const url=location.origin+location.pathname+"#design?"+q.toString();
   history.replaceState(null,"",url);
   try{await navigator.clipboard.writeText(url);msg("Share link copied to clipboard.");}
-  catch(e){msg("Link is in the address bar — copy it from there.");}
+  catch(e){msg("Copy the link from the address bar.");}
 });
 document.getElementById("btn_tunnel").addEventListener("click",()=>{
   const q=new URLSearchParams();
@@ -554,8 +554,8 @@ function loadFromHash(){
   return true;
 }
 if(typeof FLIGHT_FIT==="undefined"){
-  document.getElementById("estlbl").textContent="(uncalibrated heuristic — run scripts/fit_flight_numbers.py)";
-  document.getElementById("estnote").innerHTML="Our estimate is a rough geometry heuristic — <b>not calibrated, not CFD-validated</b>. Run <code>scripts/fit_flight_numbers.py</code> to generate <code>flight_fit.js</code>.";
+  document.getElementById("estlbl").textContent="(uncalibrated heuristic; run scripts/fit_flight_numbers.py)";
+  document.getElementById("estnote").innerHTML="Our estimate is a rough geometry heuristic: not calibrated and not CFD-validated. Run <code>scripts/fit_flight_numbers.py</code> to generate <code>flight_fit.js</code>.";
 }else{
   // pull calibration stats straight from the fit so this text can't go stale
   const n=PRO_DISCS.length||"the";
@@ -563,9 +563,9 @@ if(typeof FLIGHT_FIT==="undefined"){
   document.getElementById("estlbl").textContent=`(calibrated to ${n} pro discs)`;
   document.getElementById("estnote").innerHTML=
     `Our estimate is a linear model calibrated to the manufacturer ratings of the ${n} pro-disc presets `+
-    `(leave-one-out RMSE ${rm("speed")} speed · ${rm("glide")} glide · ${rm("turn")} turn · ${rm("fade")} fade — `+
-    `<code>data/flight_fit.json</code>). Trust it near real-disc geometry; it is <b>not CFD-validated</b> and `+
-    `extrapolates poorly to exotic shapes. Manufacturer numbers are the printed ratings athletes know.`;
+    `(leave-one-out RMSE ${rm("speed")} speed · ${rm("glide")} glide · ${rm("turn")} turn · ${rm("fade")} fade; `+
+    `<code>data/flight_fit.json</code>). It is reliable near real-disc geometry and extrapolates poorly to `+
+    `unusual shapes. Manufacturer numbers are the printed ratings.`;
 }
 if(!loadFromHash())setActivePreset("Putter");
 window.addEventListener("hashchange",()=>{if(loadFromHash()){syncSliders();render();}});

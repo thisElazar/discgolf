@@ -51,13 +51,13 @@
 <body>
 <header>
   <h1>🌬️ Disc Wind Tunnel</h1>
-  <p>Live 2-D flow around your disc's real cross-section + the raw 3-D CFD sweep data.</p>
+  <p>A live 2-D flow simulation of the disc cross-section, and the raw 3-D CFD sweep data.</p>
   <a href="index.html">← lab home</a>
 </header>
 
 <div class="wrap">
   <div class="card">
-    <h2>Live section flow — lattice-Boltzmann, computed in your browser <span id="discname" class="protag" style="display:none"></span></h2>
+    <h2>Live section flow (lattice-Boltzmann, computed in your browser) <span id="discname" class="protag" style="display:none"></span></h2>
     <canvas id="tunnel" width="960" height="480"></canvas>
     <div class="ctrls">
       <div class="ctrl" style="flex:2 1 230px"><label>Disc</label>
@@ -87,58 +87,54 @@
       <span class="stat">▶ <b>net aero force</b> · <span style="color:#f59e0b">●</span> centre of pressure</span>
     </div>
     <div id="colorkey" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
-    <div class="note">Real fluid dynamics, honestly framed: this is a genuine 2-D lattice-Boltzmann (D2Q9 BGK)
-      simulation of air moving past your disc's actual center cross-section, running live on this page.
-      It shows qualitatively real behavior — stagnation, separation, vortex shedding, wake asymmetry with
-      angle of attack — but at a low Reynolds number (~10³ vs ~10⁵ in flight) and in 2-D, so it is a
-      <b>flow visualizer, not the source of our numbers</b>. The numbers come from the 3-D steady-RANS
-      sweep below.</div>
+    <div class="note">A 2-D lattice-Boltzmann (D2Q9 BGK) simulation of the disc's center cross-section,
+      computed in the browser. Stagnation, separation, and vortex shedding behave qualitatively as they
+      do in flight, but the section is 2-D and runs near Re 10³ where flight is near 10⁵, so treat the
+      picture as illustrative. The flight numbers used elsewhere on this site come from the 3-D
+      steady-RANS sweep below.</div>
   </div>
 
   <div class="card">
-    <h2>What this is — and isn't</h2>
+    <h2>Reading this page</h2>
     <div style="font-size:13.5px;line-height:1.6">
-      <p style="margin:0 0 10px"><b>Is the disc spinning?</b> No — not here, and not in the 3-D RANS sweep either.
-      That's a deliberate choice, not an oversight: at flight Reynolds numbers, spin barely changes the
-      time-averaged lift, drag, and pitching moment (the direct Magnus-type effect on a disc is small). What spin
-      actually does is <b>gyroscopic</b>: it locks the disc's attitude, and converts aerodynamic pitch torques into
-      slow roll precession instead of an immediate tumble. Adding rotation (MRF) to the RANS runs is the next
-      fidelity step on the roadmap.</p>
-      <p style="margin:0 0 10px"><b>Where does the flight path come from, then?</b> Not from this tunnel. The chain is:
-      the 96-geometry RANS sweep below → a polynomial surrogate (how C<sub>l</sub>, C<sub>d</sub>, C<sub>m</sub> depend on shape and angle of
-      attack) → a 6-DOF integrator that adds gravity, spin, and gyroscopic precession. This page is the microscope,
-      not the odometer: it shows the <i>mechanisms</i> — stagnation, separation, wake — that those coefficients summarize.</p>
-      <p style="margin:0 0 10px"><b>What creates the different conditions?</b> Angle of attack, mostly. At low α the flow
-      hugs the profile and the wake is thin; as α rises, the suction side separates earlier, the wake fattens
-      (drag), and the centre of pressure moves — until around 10–15° the section stalls. Shape sets where those
-      transitions happen: dome adds camber (lift and earlier nose-up), a wide low rim moves the parting line down
-      and the CoP back, a blunt nose fixes the separation point.</p>
-      <p style="margin:0"><b>What does this say about stability?</b> Watch the black arrow (net aerodynamic force, measured
-      live from the simulation) and the orange dot (centre of pressure). CoP <i>ahead</i> of centre → nose-up pitch
-      torque; spin precesses that 90° in the spin direction, so for a RHBH throw it rolls the disc <b>right — that's
-      turn</b> (understability). CoP <i>behind</i> centre → nose-down torque → roll <b>left — that's fade</b>. The C<sub>m</sub>(α) slope in
-      the charts below is exactly this effect measured in 3-D, and it's why parting-line height is the designer's
-      main stability knob.</p>
+      <p style="margin:0 0 10px">The disc is not spinning, here or in the RANS sweep. At flight Reynolds
+      numbers spin has little effect on time-averaged lift, drag, and pitching moment. Its main role is
+      gyroscopic: it holds the disc's attitude and converts aerodynamic pitch torques into slow roll
+      precession instead of a tumble. Rotating (MRF) RANS runs are the planned next step.</p>
+      <p style="margin:0 0 10px">Flight paths in the designer do not come from this tunnel. The 96 solved
+      geometries below fit a polynomial surrogate giving C<sub>l</sub>, C<sub>d</sub>, and C<sub>m</sub> as functions of shape and angle
+      of attack, and a 6-DOF integrator adds gravity, spin, and precession. This page shows the flow
+      those coefficients summarize.</p>
+      <p style="margin:0 0 10px">Angle of attack drives most of what you see. At low α the flow stays
+      attached and the wake is thin. As α rises the upper surface separates earlier, the wake widens,
+      and the centre of pressure moves forward; past roughly 10–15° the section stalls. Geometry shifts
+      these transitions: dome adds camber, a lower parting line moves the centre of pressure aft, and
+      the nose radius sets where the flow separates.</p>
+      <p style="margin:0">The black arrow is the net aerodynamic force measured from the simulation;
+      the orange dot is the centre of pressure. A CoP ahead of the disc's centre applies a nose-up
+      torque, which spin precesses into rightward roll on a RHBH throw: turn. A CoP behind centre gives
+      a nose-down torque and leftward roll: fade. The C<sub>m</sub>(α) slope in the charts below is the same
+      quantity measured in 3-D, which is why parting-line height is the designer's main stability knob.</p>
     </div>
   </div>
 
   <div class="card">
-    <h2>The real data — 96 geometries × 7 angles of steady RANS (k-ω SST), <span id="nruns"></span> converged solves</h2>
+    <h2>Sweep data: 96 geometries × 7 angles of steady RANS (k-ω SST), <span id="nruns"></span> converged solves</h2>
     <div class="legend">
       <span><span class="sw" style="background:#c8d6cf"></span>all 96 sweep geometries</span>
       <span><span class="sw" style="background:var(--accent)"></span><span id="sellbl">nearest sweep geometry</span></span>
-      <span><span class="sw" style="background:var(--cfd);border-bottom:2px dashed var(--cfd);height:0"></span>surrogate @ your disc</span>
+      <span><span class="sw" style="background:var(--cfd);border-bottom:2px dashed var(--cfd);height:0"></span>surrogate for this disc</span>
     </div>
     <div style="margin:6px 0 12px">
       <select id="geomsel"></select>
     </div>
     <div class="charts" id="charts"></div>
-    <h2 style="margin-top:18px">Surrogate coefficients @ your disc</h2>
+    <h2 style="margin-top:18px">Surrogate coefficients for this disc</h2>
     <div class="grid2" id="coefftiles"></div>
-    <div class="note">Every grey curve is one geometry actually solved with OpenFOAM on the cluster
+    <div class="note">Each grey curve is one geometry solved with OpenFOAM
       (<code>cfd/bigsweep/dataset.csv</code>). The dashed line is the degree-2 polynomial surrogate
-      (<code>cfd_surrogate.js</code>) evaluated at <i>your</i> disc's parameters — the same surrogate that
-      drives the designer's CFD flight path. Pick any sweep geometry from the dropdown to inspect its raw curve.</div>
+      (<code>cfd_surrogate.js</code>) evaluated at the current disc's parameters; the same surrogate
+      drives the designer's flight path. The dropdown selects any sweep geometry's raw curve.</div>
   </div>
 </div>
 
@@ -447,14 +443,14 @@ function updateColorKey(){
   const sw=(c,t)=>`<span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:${c};vertical-align:-2px;margin:0 4px 0 10px"></span>${t}`;
   if(mode==="vort")
     el.innerHTML="<b>Colour = vorticity</b> (local spin of the air):"+
-      sw("#fa5c49","red — air rotating clockwise (shear layer peeling off the top surface)")+
-      sw("#3784fa","blue — counter-clockwise (bottom-surface layer and opposing wake vortices)")+
-      " · alternating red/blue blobs downstream = vortex shedding. Darker = stronger rotation.";
+      sw("#fa5c49","red: rotating clockwise, the shear layer off the top surface")+
+      sw("#3784fa","blue: counter-clockwise, the bottom-surface layer and opposing wake vortices")+
+      " · alternating red/blue blobs downstream are vortex shedding; darker means stronger rotation.";
   else
     el.innerHTML="<b>Colour = flow speed</b>:"+
-      sw("#f7faf8","white — stagnant (nose stagnation point, cavity, dead wake)")+
-      sw("#209b62","green — free-stream and faster")+
-      sw("#0c5e42","dark — fastest (accelerated over the dome and around the rim)");
+      sw("#f7faf8","white: stagnant, at the nose stagnation point, in the cavity, and in the dead wake")+
+      sw("#209b62","green: free-stream speed and above")+
+      sw("#0c5e42","dark: fastest, accelerated over the dome and around the rim");
 }
 function frame(){
   if(!paused){
@@ -497,7 +493,7 @@ function rebuildRanking(){
   selEl.innerHTML="";
   ranked.forEach(({g,d})=>{
     const o=document.createElement("option");o.value=g.id;
-    o.textContent=`${g.id} — rim ${g.p.rim_width_mm} · dome ${g.p.dome_mm} · shoulder ${g.p.rim_shoulder_mm} (Δ ${d.toFixed(2)}σ from your disc)`;
+    o.textContent=`${g.id} · rim ${g.p.rim_width_mm} · dome ${g.p.dome_mm} · shoulder ${g.p.rim_shoulder_mm} (Δ ${d.toFixed(2)}σ from your disc)`;
     selEl.appendChild(o);
   });
   selId=ranked.length?ranked[0].g.id:null;
@@ -530,7 +526,7 @@ function updateEditLink(){
     ["Putter","Midrange","Fairway","Distance"].forEach(cls=>{
       const grp=document.createElement("optgroup");grp.label=cls+"s";
       PRO_DISCS.forEach((d,i)=>{
-        if(d.cls===cls)grp.appendChild(new Option(`${d.name} — ${d.mfr} (${d.fl.join("/")})`,"p:"+i));
+        if(d.cls===cls)grp.appendChild(new Option(`${d.name} · ${d.mfr} (${d.fl.join("/")})`,"p:"+i));
       });
       dsel.appendChild(grp);
     });
@@ -553,8 +549,8 @@ function surrCurve(key,aDeg){
 }
 function drawCharts(){
   if(!SWEEP.length){document.getElementById("charts").innerHTML=
-    '<div class="note">cfd_sweep.js not found — run cfd/bigsweep/collect.py and regenerate.</div>';return;}
-  const defs=[["cl","Cl — lift"],["cd","Cd — drag"],["cm","Cm — pitching moment"]];
+    '<div class="note">cfd_sweep.js not found; run cfd/bigsweep/collect.py and regenerate.</div>';return;}
+  const defs=[["cl","Cl (lift)"],["cd","Cd (drag)"],["cm","Cm (pitching moment)"]];
   const box=document.getElementById("charts");box.innerHTML="";
   const Wc=320,Hc=232,padL=44,padR=10,padT=24,padB=30;
   defs.forEach(([key,title])=>{
