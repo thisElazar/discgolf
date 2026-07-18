@@ -138,48 +138,12 @@
   </div>
 </div>
 
+<script src="disc_common.js"></script>
 <script src="cfd_surrogate.js"></script>
 <script src="cfd_flight.js"></script>
 <script src="cfd_sweep.js"></script>
 <script src="pro_discs.js"></script>
 <script>
-/* ---- disc profile (port of disc_designer.html / disc_model.py) ---- */
-const clamp=(v,lo,hi)=>Math.min(Math.max(v,lo),hi);
-function zTop(p,r){const R=p.D_out_mm/2,R_in=R-p.rim_width_mm;
-  if(r<=R_in){const x=clamp(r/Math.max(R_in,1e-9),0,1);return p.rim_shoulder_mm+p.dome_mm*(1-x*x);}
-  const u=clamp((r-R_in)/Math.max(p.rim_width_mm,1e-9),0,1);
-  return p.parting_line_mm+(p.rim_shoulder_mm-p.parting_line_mm)*Math.pow(1-u,1/2);}
-function zBot(p,r){const R=p.D_out_mm/2,R_in=R-p.rim_width_mm;
-  if(r<=R_in)return zTop(p,r)-p.plate_thick_mm;
-  if(r>=R-p.nose_radius_mm){const t=clamp((r-(R-p.nose_radius_mm))/Math.max(p.nose_radius_mm,1e-9),0,1);
-    return p.parting_line_mm*(1-Math.sqrt(Math.max(1-t*t,0)));}
-  return 0;}
-
-/* ---- disc library (ports of disc_designer.html) ---- */
-function massProperties(p,n){n=n||2000;const R=p.D_out_mm/2,R_in=R-p.rim_width_mm;const dr=R/(n-1);
-  let V=0;for(let i=0;i<n;i++){const r=R*i/(n-1);const h=Math.max(zTop(p,r)-zBot(p,r),0);V+=2*Math.PI*r*h*dr;}
-  return{volume_cm3:V/1000};}
-const CLASS_EST={Putter:{plate:3.2,nose:3.0},Midrange:{plate:2.6,nose:2.5},
-                 Fairway:{plate:2.0,nose:2.0},Distance:{plate:1.7,nose:1.7}};
-function paramsFromCertified(d){
-  const est=CLASS_EST[d.cls];
-  const shoulder=d.rd+est.plate, dome=clamp(d.h-shoulder,0.2,8);
-  const stab=d.fl?d.fl[3]+d.fl[2]:1;
-  const parting=clamp(shoulder*(0.60-0.04*stab),5,shoulder-2);
-  const p={D_out_mm:d.dia,rim_width_mm:d.rw,rim_shoulder_mm:+shoulder.toFixed(1),
-    parting_line_mm:+parting.toFixed(1),dome_mm:+dome.toFixed(1),
-    plate_thick_mm:est.plate,nose_radius_mm:est.nose,density_gcc:.95};
-  const target=Math.min(d.wt,8.3*d.dia/10)-0.5;
-  p.density_gcc=+clamp(target/Math.max(massProperties(p).volume_cm3,1e-9),.85,1.00).toFixed(3);
-  return p;
-}
-const PRESETS={
-  Putter:{D_out_mm:212,rim_width_mm:11.5,rim_shoulder_mm:16,parting_line_mm:9,dome_mm:5.5,plate_thick_mm:2.4,nose_radius_mm:2.0,density_gcc:.98},
-  Midrange:{D_out_mm:212,rim_width_mm:13.5,rim_shoulder_mm:14.5,parting_line_mm:10,dome_mm:3.5,plate_thick_mm:2.2,nose_radius_mm:2.2,density_gcc:.97},
-  Fairway:{D_out_mm:212,rim_width_mm:17.5,rim_shoulder_mm:13.5,parting_line_mm:9,dome_mm:2.0,plate_thick_mm:1.9,nose_radius_mm:1.8,density_gcc:.95},
-  Distance:{D_out_mm:211,rim_width_mm:22,rim_shoulder_mm:13.5,parting_line_mm:8,dome_mm:1.0,plate_thick_mm:1.6,nose_radius_mm:1.7,density_gcc:.90},
-};
-
 /* ---- disc params from #design hash (same encoding as the designer) ---- */
 const DEFAULTS={...PRESETS.Putter};
 let P={...DEFAULTS},discName="";
