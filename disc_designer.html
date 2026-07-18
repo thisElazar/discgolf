@@ -81,6 +81,12 @@
     padding:6px 11px;cursor:pointer;color:var(--muted);border-right:1px solid var(--line)}
   .handtoggle button:last-child{border-right:none}
   .handtoggle button.active{background:var(--accent);color:#fff}
+  .saverow input[type=text]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;
+    font:inherit;font-size:13px;margin-bottom:8px;background:#fff}
+  .saverow .btns{display:flex;gap:6px;flex-wrap:wrap}
+  .saverow .btns button{flex:1 1 30%;padding:8px 6px;border:1px solid var(--line);background:#fff;
+    border-radius:9px;font:inherit;font-size:12px;font-weight:700;color:var(--accent-d);cursor:pointer;transition:.15s}
+  .saverow .btns button:hover{border-color:var(--accent)}
   @media(max-width:1000px){.wrap{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
 </style>
 </head>
@@ -103,6 +109,17 @@
     <div id="geo"></div>
     <h2 style="margin-top:14px">Material</h2>
     <div id="mat"></div>
+    <h2 style="margin-top:14px">Save &amp; share</h2>
+    <div class="saverow">
+      <input type="text" id="dname" placeholder="Name this design (optional)" maxlength="60">
+      <div class="btns">
+        <button id="btn_save">Download JSON</button>
+        <button id="btn_load">Load JSON</button>
+        <button id="btn_share">Copy share link</button>
+      </div>
+      <input type="file" id="loadfile" accept=".json,application/json" hidden>
+      <div class="hint" id="savemsg" style="margin-top:6px"></div>
+    </div>
   </div>
 
   <!-- STAGE -->
@@ -445,8 +462,76 @@ function drawPath(fl){
     <text x="${cx}" y="${Ht-2}" text-anchor="middle" fill="#5d6f66" font-size="10">${cap}</text>`;
 }
 
+/* ---- save / load / share ---- */
+const DESIGN_KEYS=PARAMS.map(d=>d.k);
+const nameEl=document.getElementById("dname"),saveMsg=document.getElementById("savemsg");
+function msg(t){saveMsg.textContent=t;clearTimeout(msg._t);msg._t=setTimeout(()=>saveMsg.textContent="",5000);}
+function widenSliders(){PARAMS.forEach(def=>{const s=sliderEls[def.k].input;
+  if(P[def.k]>parseFloat(s.max))s.max=Math.ceil(P[def.k]);
+  if(P[def.k]<parseFloat(s.min))s.min=Math.floor(P[def.k]);});}
+function applyParams(src,name){
+  const p={};
+  for(const k of DESIGN_KEYS){
+    const v=parseFloat(src[k]);
+    if(!isFinite(v)){
+      if(k==="density_gcc"){p[k]=P.density_gcc;continue;} // CFD case files omit density
+      throw new Error("missing "+k);
+    }
+    p[k]=v;
+  }
+  P=p;activePro=null;importedDisc=null;
+  widenSliders();setActivePreset(null);setActivePro(-1);
+  nameEl.value=name||"";
+  syncSliders();render();
+}
+function designJSON(){
+  const mp=massProperties(P),ad=activeDisc();
+  // params/mp keys intentionally match cfd/test_case.json so a saved design
+  // can feed the CFD pipeline directly
+  return{format:"discgolf-design-v1",name:nameEl.value.trim()||null,
+    based_on:ad?{mfr:ad.mfr,name:ad.name}:null,
+    params:{...P},
+    mp:{mass_g:+mp.mass_g.toFixed(2),Iz_gcm2:+mp.Iz_gcm2.toFixed(1),
+        total_height_mm:+mp.total_height_mm.toFixed(2),cavity_depth_mm:+mp.cavity_depth_mm.toFixed(2),
+        cg_height_mm:+mp.cg_height_mm.toFixed(2)},
+    flight_estimate:flightEstimate(P,mp),pdga_legal:pdgaCheck(P,mp).all};
+}
+document.getElementById("btn_save").addEventListener("click",()=>{
+  const d=designJSON();
+  const slug=(d.name||"disc-design").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"disc-design";
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:"application/json"}));
+  a.download=slug+".json";a.click();URL.revokeObjectURL(a.href);
+  msg("Saved "+a.download);
+});
+const fileEl=document.getElementById("loadfile");
+document.getElementById("btn_load").addEventListener("click",()=>fileEl.click());
+fileEl.addEventListener("change",async()=>{
+  const f=fileEl.files[0];fileEl.value="";if(!f)return;
+  try{
+    const j=JSON.parse(await f.text());
+    applyParams(j.params||j,j.name||"");  // accepts saved designs, cfd case files, or bare param objects
+    msg("Loaded "+f.name);
+  }catch(e){msg("Couldn't load that file — "+e.message);}
+});
+document.getElementById("btn_share").addEventListener("click",async()=>{
+  const q=new URLSearchParams();
+  DESIGN_KEYS.forEach(k=>q.set(k,P[k]));
+  if(nameEl.value.trim())q.set("name",nameEl.value.trim());
+  const url=location.origin+location.pathname+"#design?"+q.toString();
+  history.replaceState(null,"",url);
+  try{await navigator.clipboard.writeText(url);msg("Share link copied to clipboard.");}
+  catch(e){msg("Link is in the address bar — copy it from there.");}
+});
+
 /* ---- disc handed over from the database browser (index.html) via URL hash ---- */
 function loadFromHash(){
+  const dm=location.hash.match(/^#design\?(.*)$/);
+  if(dm){
+    const q=new URLSearchParams(dm[1]);
+    try{applyParams(Object.fromEntries(q),q.get("name")||"");return true;}
+    catch(e){return false;}
+  }
   const m=location.hash.match(/^#disc\?(.*)$/);
   if(!m)return false;
   const q=new URLSearchParams(m[1]);
@@ -457,9 +542,7 @@ function loadFromHash(){
   d.cls=d.rw<13?"Putter":d.rw<16?"Midrange":d.rw<21?"Fairway":"Distance";
   P=paramsFromCertified(d);importedDisc=d;activePro=null;
   // big vintage discs can exceed the default slider ranges — widen to fit
-  PARAMS.forEach(def=>{const s=sliderEls[def.k].input;
-    if(P[def.k]>parseFloat(s.max))s.max=Math.ceil(P[def.k]);
-    if(P[def.k]<parseFloat(s.min))s.min=Math.floor(P[def.k]);});
+  widenSliders();
   setActivePreset(null);setActivePro(-1);
   return true;
 }
