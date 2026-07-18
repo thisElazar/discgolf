@@ -60,6 +60,8 @@
     <h2>Live section flow — lattice-Boltzmann, computed in your browser <span id="discname" class="protag" style="display:none"></span></h2>
     <canvas id="tunnel" width="960" height="480"></canvas>
     <div class="ctrls">
+      <div class="ctrl" style="flex:2 1 230px"><label>Disc</label>
+        <select id="discsel" style="width:100%"></select></div>
       <div class="ctrl"><label>Angle of attack <span class="val" id="v_alpha"></span></label>
         <input type="range" id="alpha" min="-4" max="14" step="0.5" value="5"></div>
       <div class="ctrl"><label>Wind speed <span class="val" id="v_speed"></span></label>
@@ -78,13 +80,46 @@
       <span class="stat">Re ≈ <b id="re">—</b></span>
       <span class="stat">sim <b id="sps">—</b> steps/s</span>
       <span class="stat">grid <b id="gsz">—</b></span>
+      <span class="stat">C<sub>l,2D</sub> <b id="cl2">—</b></span>
+      <span class="stat">C<sub>d,2D</sub> <b id="cd2">—</b></span>
+      <span class="stat">L/D <b id="ld2">—</b></span>
+      <span class="stat">pitch <b id="pitch">—</b></span>
+      <span class="stat">▶ <b>net aero force</b> · <span style="color:#f59e0b">●</span> centre of pressure</span>
     </div>
+    <div id="colorkey" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
     <div class="note">Real fluid dynamics, honestly framed: this is a genuine 2-D lattice-Boltzmann (D2Q9 BGK)
       simulation of air moving past your disc's actual center cross-section, running live on this page.
       It shows qualitatively real behavior — stagnation, separation, vortex shedding, wake asymmetry with
       angle of attack — but at a low Reynolds number (~10³ vs ~10⁵ in flight) and in 2-D, so it is a
       <b>flow visualizer, not the source of our numbers</b>. The numbers come from the 3-D steady-RANS
       sweep below.</div>
+  </div>
+
+  <div class="card">
+    <h2>What this is — and isn't</h2>
+    <div style="font-size:13.5px;line-height:1.6">
+      <p style="margin:0 0 10px"><b>Is the disc spinning?</b> No — not here, and not in the 3-D RANS sweep either.
+      That's a deliberate choice, not an oversight: at flight Reynolds numbers, spin barely changes the
+      time-averaged lift, drag, and pitching moment (the direct Magnus-type effect on a disc is small). What spin
+      actually does is <b>gyroscopic</b>: it locks the disc's attitude, and converts aerodynamic pitch torques into
+      slow roll precession instead of an immediate tumble. Adding rotation (MRF) to the RANS runs is the next
+      fidelity step on the roadmap.</p>
+      <p style="margin:0 0 10px"><b>Where does the flight path come from, then?</b> Not from this tunnel. The chain is:
+      the 96-geometry RANS sweep below → a polynomial surrogate (how C<sub>l</sub>, C<sub>d</sub>, C<sub>m</sub> depend on shape and angle of
+      attack) → a 6-DOF integrator that adds gravity, spin, and gyroscopic precession. This page is the microscope,
+      not the odometer: it shows the <i>mechanisms</i> — stagnation, separation, wake — that those coefficients summarize.</p>
+      <p style="margin:0 0 10px"><b>What creates the different conditions?</b> Angle of attack, mostly. At low α the flow
+      hugs the profile and the wake is thin; as α rises, the suction side separates earlier, the wake fattens
+      (drag), and the centre of pressure moves — until around 10–15° the section stalls. Shape sets where those
+      transitions happen: dome adds camber (lift and earlier nose-up), a wide low rim moves the parting line down
+      and the CoP back, a blunt nose fixes the separation point.</p>
+      <p style="margin:0"><b>What does this say about stability?</b> Watch the black arrow (net aerodynamic force, measured
+      live from the simulation) and the orange dot (centre of pressure). CoP <i>ahead</i> of centre → nose-up pitch
+      torque; spin precesses that 90° in the spin direction, so for a RHBH throw it rolls the disc <b>right — that's
+      turn</b> (understability). CoP <i>behind</i> centre → nose-down torque → roll <b>left — that's fade</b>. The C<sub>m</sub>(α) slope in
+      the charts below is exactly this effect measured in 3-D, and it's why parting-line height is the designer's
+      main stability knob.</p>
+    </div>
   </div>
 
   <div class="card">
@@ -110,6 +145,7 @@
 <script src="cfd_surrogate.js"></script>
 <script src="cfd_flight.js"></script>
 <script src="cfd_sweep.js"></script>
+<script src="pro_discs.js"></script>
 <script>
 /* ---- disc profile (port of disc_designer.html / disc_model.py) ---- */
 const clamp=(v,lo,hi)=>Math.min(Math.max(v,lo),hi);
@@ -123,26 +159,52 @@ function zBot(p,r){const R=p.D_out_mm/2,R_in=R-p.rim_width_mm;
     return p.parting_line_mm*(1-Math.sqrt(Math.max(1-t*t,0)));}
   return 0;}
 
+/* ---- disc library (ports of disc_designer.html) ---- */
+function massProperties(p,n){n=n||2000;const R=p.D_out_mm/2,R_in=R-p.rim_width_mm;const dr=R/(n-1);
+  let V=0;for(let i=0;i<n;i++){const r=R*i/(n-1);const h=Math.max(zTop(p,r)-zBot(p,r),0);V+=2*Math.PI*r*h*dr;}
+  return{volume_cm3:V/1000};}
+const CLASS_EST={Putter:{plate:3.2,nose:3.0},Midrange:{plate:2.6,nose:2.5},
+                 Fairway:{plate:2.0,nose:2.0},Distance:{plate:1.7,nose:1.7}};
+function paramsFromCertified(d){
+  const est=CLASS_EST[d.cls];
+  const shoulder=d.rd+est.plate, dome=clamp(d.h-shoulder,0.2,8);
+  const stab=d.fl?d.fl[3]+d.fl[2]:1;
+  const parting=clamp(shoulder*(0.60-0.04*stab),5,shoulder-2);
+  const p={D_out_mm:d.dia,rim_width_mm:d.rw,rim_shoulder_mm:+shoulder.toFixed(1),
+    parting_line_mm:+parting.toFixed(1),dome_mm:+dome.toFixed(1),
+    plate_thick_mm:est.plate,nose_radius_mm:est.nose,density_gcc:.95};
+  const target=Math.min(d.wt,8.3*d.dia/10)-0.5;
+  p.density_gcc=+clamp(target/Math.max(massProperties(p).volume_cm3,1e-9),.85,1.00).toFixed(3);
+  return p;
+}
+const PRESETS={
+  Putter:{D_out_mm:212,rim_width_mm:11.5,rim_shoulder_mm:16,parting_line_mm:9,dome_mm:5.5,plate_thick_mm:2.4,nose_radius_mm:2.0,density_gcc:.98},
+  Midrange:{D_out_mm:212,rim_width_mm:13.5,rim_shoulder_mm:14.5,parting_line_mm:10,dome_mm:3.5,plate_thick_mm:2.2,nose_radius_mm:2.2,density_gcc:.97},
+  Fairway:{D_out_mm:212,rim_width_mm:17.5,rim_shoulder_mm:13.5,parting_line_mm:9,dome_mm:2.0,plate_thick_mm:1.9,nose_radius_mm:1.8,density_gcc:.95},
+  Distance:{D_out_mm:211,rim_width_mm:22,rim_shoulder_mm:13.5,parting_line_mm:8,dome_mm:1.0,plate_thick_mm:1.6,nose_radius_mm:1.7,density_gcc:.90},
+};
+
 /* ---- disc params from #design hash (same encoding as the designer) ---- */
-const DEFAULTS={D_out_mm:212,rim_width_mm:11.5,rim_shoulder_mm:16,parting_line_mm:9,dome_mm:5.5,
-                plate_thick_mm:2.4,nose_radius_mm:2.0,density_gcc:.98};
+const DEFAULTS={...PRESETS.Putter};
 let P={...DEFAULTS},discName="";
+let CUSTOM0=null;
 (function(){
   const m=location.hash.match(/^#design\?(.*)$/);
   if(!m)return;
   const q=new URLSearchParams(m[1]);
   const p={};
   for(const k in DEFAULTS){const v=parseFloat(q.get(k));p[k]=isFinite(v)?v:DEFAULTS[k];}
-  P=p;discName=q.get("name")||"";
-  document.getElementById("editlink").href="disc_designer.html"+location.hash;
+  P=p;discName=q.get("name")||"linked design";
+  CUSTOM0={p:{...p},name:discName};
 })();
-if(discName){const el=document.getElementById("discname");el.style.display="";el.textContent=discName;}
 
 /* ================= LBM wind tunnel (D2Q9, BGK) ================= */
 const EX=[0,1,0,-1,0,1,-1,-1,1], EY=[0,0,1,0,-1,1,1,-1,-1],
       WT=[4/9,1/9,1/9,1/9,1/9,1/36,1/36,1/36,1/36], OPP=[0,3,4,1,2,7,8,5,6];
 const TAU=0.58, NU=(TAU-0.5)/3;
 let W,H,N,fA,fB,solid,prevSolid,UX,UY,u0=0.09,alphaDeg=5,paused=false,stepsPF=10;
+let cxL=0,cyL=0,chordL=1;                 // disc centre & chord in lattice units
+let FXe=0,FYe=0,TQe=0,_fx=0,_fy=0,_tq=0;  // momentum-exchange force on the disc (EMA + per-step)
 const cv=document.getElementById("tunnel"),ctx=cv.getContext("2d");
 let img,off,octx;
 
@@ -162,6 +224,7 @@ function rasterize(){
   // disc chord spans ~42% of the tunnel; rotate section by alpha (nose-up positive)
   const chord=0.42*W, s=chord/P.D_out_mm, R=P.D_out_mm/2;
   const cx=0.36*W, cy=0.5*H, zmid=zTop(P,0)/2;
+  cxL=cx;cyL=cy;chordL=chord;
   const a=alphaDeg*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
   solid.fill(0);
   for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
@@ -194,7 +257,15 @@ function initFlow(){
   }
 }
 const OMEGA=1/TAU;
+// momentum exchange at a bounce-back link: the disc gains 2*f*e per step.
+// Positions/forces converted to physics frame (x right, z up); torque CCW+.
+function bbAcc(d,p,x,y){
+  const ex=EX[d],ey=EY[d],dfx=2*p*ex,dfy=2*p*ey;
+  _fx+=dfx;_fy+=dfy;
+  _tq+=(x+0.5*ex-cxL)*(-dfy)-(cyL-y-0.5*ey)*dfx;
+}
 function step(){
+  _fx=0;_fy=0;_tq=0;
   const n1=N,n2=2*N,n3=3*N,n4=4*N,n5=5*N,n6=6*N,n7=7*N,n8=8*N;
   // interior: fused collide + push-stream, unrolled D2Q9, half-way bounce-back
   for(let y=1;y<H-1;y++){
@@ -219,16 +290,18 @@ function step(){
             p7=f7+(e7-f7)*OMEGA,p8=f8+(e8-f8)*OMEGA;
       fB[i]=f0+(e0-f0)*OMEGA;
       const iE=i+1,iWt=i-1,iN=i+W,iS=i-W;
-      if(solid[iE])   fB[n3+i]=p1; else fB[n1+iE]=p1;
-      if(solid[iN])   fB[n4+i]=p2; else fB[n2+iN]=p2;
-      if(solid[iWt])  fB[n1+i]=p3; else fB[n3+iWt]=p3;
-      if(solid[iS])   fB[n2+i]=p4; else fB[n4+iS]=p4;
-      if(solid[iN+1]) fB[n7+i]=p5; else fB[n5+iN+1]=p5;
-      if(solid[iN-1]) fB[n8+i]=p6; else fB[n6+iN-1]=p6;
-      if(solid[iS-1]) fB[n5+i]=p7; else fB[n7+iS-1]=p7;
-      if(solid[iS+1]) fB[n6+i]=p8; else fB[n8+iS+1]=p8;
+      if(solid[iE])   {fB[n3+i]=p1;bbAcc(1,p1,x,y);} else fB[n1+iE]=p1;
+      if(solid[iN])   {fB[n4+i]=p2;bbAcc(2,p2,x,y);} else fB[n2+iN]=p2;
+      if(solid[iWt])  {fB[n1+i]=p3;bbAcc(3,p3,x,y);} else fB[n3+iWt]=p3;
+      if(solid[iS])   {fB[n2+i]=p4;bbAcc(4,p4,x,y);} else fB[n4+iS]=p4;
+      if(solid[iN+1]) {fB[n7+i]=p5;bbAcc(5,p5,x,y);} else fB[n5+iN+1]=p5;
+      if(solid[iN-1]) {fB[n8+i]=p6;bbAcc(6,p6,x,y);} else fB[n6+iN-1]=p6;
+      if(solid[iS-1]) {fB[n5+i]=p7;bbAcc(7,p7,x,y);} else fB[n7+iS-1]=p7;
+      if(solid[iS+1]) {fB[n6+i]=p8;bbAcc(8,p8,x,y);} else fB[n8+iS+1]=p8;
     }
   }
+  // smooth the surface force over ~100 steps (shedding makes the raw signal noisy)
+  FXe+=( _fx-FXe)*0.02; FYe+=(_fy-FYe)*0.02; TQe+=(_tq-TQe)*0.02;
   // edge cells stream too — without this the first interior ring never
   // receives inflow and the field rots from the boundary in
   edgePush();
@@ -309,6 +382,38 @@ function render(){
     ctx.fillStyle="rgba(22,36,29,.45)";
     for(let k=0;k<px.length;k++)ctx.fillRect(px[k]*3,py[k]*3,2,2);
   }
+  drawForceOverlay();
+}
+function arrow(x0,y0,x1,y1,wd){
+  ctx.lineWidth=wd;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+  const a=Math.atan2(y1-y0,x1-x0),hs=4+2.5*wd;
+  ctx.beginPath();ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-hs*Math.cos(a-0.42),y1-hs*Math.sin(a-0.42));
+  ctx.lineTo(x1-hs*Math.cos(a+0.42),y1-hs*Math.sin(a+0.42));
+  ctx.closePath();ctx.fill();
+}
+function drawForceOverlay(){
+  const q=0.5*u0*u0*chordL, Fx=FXe, Fz=-FYe, F=Math.hypot(Fx,Fz);
+  if(F<q*0.05)return;                       // still spinning up
+  const sc=3, cx=cxL*sc, cy=cyL*sc, k=chordL*sc*0.30/q;
+  const cap=v=>Math.sign(v)*Math.min(Math.abs(v)*k,chordL*sc*0.8);
+  // components: drag along the wind (red), lift across it (blue)
+  ctx.strokeStyle=ctx.fillStyle="rgba(220,38,38,.55)";
+  if(Math.abs(Fx)>q*0.03)arrow(cx,cy,cx+cap(Fx),cy,2);
+  ctx.strokeStyle=ctx.fillStyle="rgba(37,99,176,.6)";
+  if(Math.abs(Fz)>q*0.03)arrow(cx,cy,cx,cy-cap(Fz),2);
+  // net aerodynamic force
+  const L=Math.min(F*k,chordL*sc*0.9);
+  ctx.strokeStyle=ctx.fillStyle="#16241d";
+  arrow(cx,cy,cx+Fx/F*L,cy-Fz/F*L,3);
+  // centre of pressure on the chord line
+  if(Math.abs(Fz)>q*0.1){
+    const xcp=clamp(TQe/Fz,-0.55*chordL,0.55*chordL);
+    const a=alphaDeg*Math.PI/180;
+    const dx=xcp*sc, dy=xcp*Math.tan(a)*sc; // chord rises toward the nose at +alpha
+    ctx.fillStyle="#f59e0b";ctx.strokeStyle="#fff";ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(cx+dx,cy+dy,5,0,7);ctx.fill();ctx.stroke();
+  }
 }
 
 /* ---- main loop ---- */
@@ -321,6 +426,35 @@ function selfCheck(){
     if(!isFinite(s))bad++;else if(s>mx)mx=s;
   }
   console.log("LBMCHECK maxU="+mx.toFixed(4)+" u0="+u0+" nonfinite="+bad);
+  const q=0.5*u0*u0*chordL,Fz=-FYe,Fx=FXe;
+  const xcp=Math.abs(Fz)>1e-9?TQe/Fz/chordL:0;
+  console.log("LBMFORCE alpha="+alphaDeg+" Cl2="+(Fz/q).toFixed(3)+" Cd2="+(Fx/q).toFixed(3)+" xcp/c="+xcp.toFixed(3));
+}
+function updateReadouts(){
+  const q=0.5*u0*u0*chordL,Fz=-FYe,Fx=FXe;
+  if(Math.hypot(Fx,Fz)<q*0.05)return;
+  document.getElementById("cl2").textContent=(Fz/q).toFixed(2);
+  document.getElementById("cd2").textContent=(Fx/q).toFixed(2);
+  document.getElementById("ld2").textContent=(Fz/Math.max(Fx,1e-9)).toFixed(1);
+  if(Math.abs(Fz)>q*0.1){
+    const xc=TQe/Fz/chordL;
+    document.getElementById("pitch").textContent=
+      (xc<0?"nose-up":"nose-down")+" (CoP "+(100*Math.abs(xc)).toFixed(0)+"% "+(xc<0?"ahead of":"behind")+" centre)";
+  }
+}
+function updateColorKey(){
+  const mode=document.getElementById("viz").value,el=document.getElementById("colorkey");
+  const sw=(c,t)=>`<span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:${c};vertical-align:-2px;margin:0 4px 0 10px"></span>${t}`;
+  if(mode==="vort")
+    el.innerHTML="<b>Colour = vorticity</b> (local spin of the air):"+
+      sw("#fa5c49","red — air rotating clockwise (shear layer peeling off the top surface)")+
+      sw("#3784fa","blue — counter-clockwise (bottom-surface layer and opposing wake vortices)")+
+      " · alternating red/blue blobs downstream = vortex shedding. Darker = stronger rotation.";
+  else
+    el.innerHTML="<b>Colour = flow speed</b>:"+
+      sw("#f7faf8","white — stagnant (nose stagnation point, cavity, dead wake)")+
+      sw("#209b62","green — free-stream and faster")+
+      sw("#0c5e42","dark — fastest (accelerated over the dome and around the rim)");
 }
 function frame(){
   if(!paused){
@@ -333,7 +467,7 @@ function frame(){
   const now=performance.now();
   if(now-lastT>1000){
     document.getElementById("sps").textContent=Math.round(stepCount*1000/(now-lastT));
-    stepCount=0;lastT=now;
+    stepCount=0;lastT=now;updateReadouts();
   }
   requestAnimationFrame(frame);
 }
@@ -356,18 +490,61 @@ const PC=["rim_width_mm","rim_shoulder_mm","parting_line_mm","dome_mm","plate_th
 document.getElementById("nruns").textContent=SWEEP.reduce((s,g)=>s+g.a.length,0);
 const S=(typeof CFD_SURROGATE!=="undefined")?CFD_SURROGATE:null;
 function gDist(g){let s=0;for(let i=0;i<6;i++){const d=(P[PC[i]]-g.p[PC[i]])/(S?S.std[i]:1);s+=d*d;}return Math.sqrt(s);}
-const ranked=SWEEP.map(g=>({g,d:gDist(g)})).sort((a,b)=>a.d-b.d);
-let selId=ranked.length?ranked[0].g.id:null;
+let ranked=[],selId=null;
 const selEl=document.getElementById("geomsel");
-ranked.forEach(({g,d})=>{
-  const o=document.createElement("option");o.value=g.id;
-  o.textContent=`${g.id} — rim ${g.p.rim_width_mm} · dome ${g.p.dome_mm} · shoulder ${g.p.rim_shoulder_mm} (Δ ${d.toFixed(2)}σ from your disc)`;
-  selEl.appendChild(o);
-});
+function rebuildRanking(){
+  ranked=SWEEP.map(g=>({g,d:gDist(g)})).sort((a,b)=>a.d-b.d);
+  selEl.innerHTML="";
+  ranked.forEach(({g,d})=>{
+    const o=document.createElement("option");o.value=g.id;
+    o.textContent=`${g.id} — rim ${g.p.rim_width_mm} · dome ${g.p.dome_mm} · shoulder ${g.p.rim_shoulder_mm} (Δ ${d.toFixed(2)}σ from your disc)`;
+    selEl.appendChild(o);
+  });
+  selId=ranked.length?ranked[0].g.id:null;
+  if(selId)document.getElementById("sellbl").textContent=selId+" (nearest raw CFD)";
+}
 selEl.addEventListener("change",()=>{selId=selEl.value;
   document.getElementById("sellbl").textContent=selId+" (raw CFD)";drawCharts();});
 
-const AC=(typeof CFDFlight!=="undefined")?CFDFlight.cfdAero(P):null;
+/* ---- disc selector: archetypes + the 43 pro discs, same library as the designer ---- */
+const dsel=document.getElementById("discsel");
+function setDisc(p,name){
+  P={...p};discName=name||"";
+  const tag=document.getElementById("discname");
+  tag.style.display=discName?"":"none";tag.textContent=discName;
+  AC=(typeof CFDFlight!=="undefined")?CFDFlight.cfdAero(P):null;
+  updateEditLink();rebuildRanking();rasterize();drawCharts();
+}
+function updateEditLink(){
+  const q=new URLSearchParams();
+  for(const k in DEFAULTS)q.set(k,P[k]);
+  if(discName)q.set("name",discName);
+  document.getElementById("editlink").href="disc_designer.html#design?"+q.toString();
+}
+(function buildDiscSel(){
+  if(CUSTOM0)dsel.add(new Option(CUSTOM0.name+" (from link)","custom"));
+  const og=document.createElement("optgroup");og.label="Archetypes";
+  Object.keys(PRESETS).forEach(k=>og.appendChild(new Option(k+" (archetype)","a:"+k)));
+  dsel.appendChild(og);
+  if(typeof PRO_DISCS!=="undefined"&&PRO_DISCS.length){
+    ["Putter","Midrange","Fairway","Distance"].forEach(cls=>{
+      const grp=document.createElement("optgroup");grp.label=cls+"s";
+      PRO_DISCS.forEach((d,i)=>{
+        if(d.cls===cls)grp.appendChild(new Option(`${d.name} — ${d.mfr} (${d.fl.join("/")})`,"p:"+i));
+      });
+      dsel.appendChild(grp);
+    });
+  }
+  dsel.value=CUSTOM0?"custom":"a:Putter";
+})();
+dsel.addEventListener("change",()=>{
+  const v=dsel.value;
+  if(v==="custom")setDisc(CUSTOM0.p,CUSTOM0.name);
+  else if(v.startsWith("a:"))setDisc(PRESETS[v.slice(2)],v.slice(2)+" archetype");
+  else{const d=PRO_DISCS[+v.slice(2)];setDisc(paramsFromCertified(d),d.mfr+" "+d.name);}
+});
+
+let AC=(typeof CFDFlight!=="undefined")?CFDFlight.cfdAero(P):null;
 function surrCurve(key,aDeg){
   const a=aDeg*Math.PI/180;
   if(key==="cl")return AC.CL0+AC.CLa*a;
@@ -420,7 +597,12 @@ function drawCharts(){
 
 /* ---- boot ---- */
 syncLabels();
-if(ranked.length)document.getElementById("sellbl").textContent=selId+" (nearest raw CFD)";
+updateColorKey();
+document.getElementById("viz").addEventListener("change",updateColorKey);
+const tag0=document.getElementById("discname");
+if(discName){tag0.style.display="";tag0.textContent=discName;}
+updateEditLink();
+rebuildRanking();
 alloc(320);
 drawCharts();
 if(LBMTEST){ // synchronous burst: steady run, then an alpha change (re-rasterize), then more
@@ -428,7 +610,7 @@ if(LBMTEST){ // synchronous burst: steady run, then an alpha change (re-rasteriz
   for(let s=0;s<800;s++)step(); selfCheck();
   alphaEl.value="12";alphaDeg=12;syncLabels();rasterize();
   for(let s=0;s<800;s++)step(); selfCheck();
-  render();
+  render();updateReadouts();
 }
 requestAnimationFrame(frame);
 </script>
