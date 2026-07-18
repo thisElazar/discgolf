@@ -142,17 +142,19 @@ if(discName){const el=document.getElementById("discname");el.style.display="";el
 const EX=[0,1,0,-1,0,1,-1,-1,1], EY=[0,0,1,0,-1,1,1,-1,-1],
       WT=[4/9,1/9,1/9,1/9,1/9,1/36,1/36,1/36,1/36], OPP=[0,3,4,1,2,7,8,5,6];
 const TAU=0.58, NU=(TAU-0.5)/3;
-let W,H,N,fA,fB,solid,UX,UY,u0=0.09,alphaDeg=5,paused=false;
+let W,H,N,fA,fB,solid,prevSolid,UX,UY,u0=0.09,alphaDeg=5,paused=false,stepsPF=10;
 const cv=document.getElementById("tunnel"),ctx=cv.getContext("2d");
 let img,off,octx;
 
 function alloc(w){
   W=w;H=w/2;N=W*H;
   fA=new Float32Array(9*N);fB=new Float32Array(9*N);
-  solid=new Uint8Array(N);UX=new Float32Array(N);UY=new Float32Array(N);
+  solid=new Uint8Array(N);prevSolid=null;
+  UX=new Float32Array(N);UY=new Float32Array(N);
   off=document.createElement("canvas");off.width=W;off.height=H;
   octx=off.getContext("2d");img=octx.createImageData(W,H);
   cv.width=W*3;cv.height=H*3;
+  stepsPF=W>=400?8:(W>=320?10:14);
   document.getElementById("gsz").textContent=W+" × "+H;
   rasterize();initFlow();seedParticles();
 }
@@ -172,45 +174,89 @@ function rasterize(){
     }
     if(hit)solid[x+y*W]=1;
   }
+  // cells the disc just vacated (alpha change) have no valid distributions —
+  // wake them at rest or they divide by rho=0 and NaN the whole field
+  if(prevSolid){
+    for(let i=0;i<N;i++)if(prevSolid[i]&&!solid[i]){
+      for(let d=0;d<9;d++)fA[d*N+i]=eq(d,1,0,0);
+      UX[i]=0;UY[i]=0;
+    }
+  }else prevSolid=new Uint8Array(N);
+  prevSolid.set(solid);
   document.getElementById("re").textContent=Math.round(u0*chord/NU);
 }
 function eq(d,rho,ux,uy){const eu=EX[d]*ux+EY[d]*uy;
   return WT[d]*rho*(1+3*eu+4.5*eu*eu-1.5*(ux*ux+uy*uy));}
 function initFlow(){
-  for(let i=0;i<N;i++)for(let d=0;d<9;d++)fA[d*N+i]=eq(d,1,u0,0);
+  for(let i=0;i<N;i++){
+    for(let d=0;d<9;d++)fA[d*N+i]=eq(d,1,u0,0);
+    UX[i]=u0;UY[i]=0;
+  }
 }
+const OMEGA=1/TAU;
 function step(){
-  // collide + stream fused; bounce-back into solids
+  const n1=N,n2=2*N,n3=3*N,n4=4*N,n5=5*N,n6=6*N,n7=7*N,n8=8*N;
+  // interior: fused collide + push-stream, unrolled D2Q9, half-way bounce-back
   for(let y=1;y<H-1;y++){
     const yw=y*W;
     for(let x=1;x<W-1;x++){
       const i=x+yw;
       if(solid[i]){UX[i]=0;UY[i]=0;continue;}
-      let rho=0,mx=0,my=0;
-      for(let d=0;d<9;d++){const f=fA[d*N+i];rho+=f;mx+=EX[d]*f;my+=EY[d]*f;}
-      const ux=mx/rho,uy=my/rho;UX[i]=ux;UY[i]=uy;
-      const usq=1.5*(ux*ux+uy*uy);
-      for(let d=0;d<9;d++){
-        const eu=EX[d]*ux+EY[d]*uy;
-        const feq=WT[d]*rho*(1+3*eu+4.5*eu*eu-usq);
-        const fp=fA[d*N+i]+(feq-fA[d*N+i])/TAU;
-        const xn=x+EX[d],yn=y+EY[d],j=xn+yn*W;
-        if(solid[j])fB[OPP[d]*N+i]=fp; else fB[d*N+j]=fp;
-      }
+      const f0=fA[i],f1=fA[n1+i],f2=fA[n2+i],f3=fA[n3+i],f4=fA[n4+i],
+            f5=fA[n5+i],f6=fA[n6+i],f7=fA[n7+i],f8=fA[n8+i];
+      const rho=f0+f1+f2+f3+f4+f5+f6+f7+f8;
+      const ux=(f1+f5+f8-f3-f6-f7)/rho, uy=(f2+f5+f6-f4-f7-f8)/rho;
+      UX[i]=ux;UY[i]=uy;
+      const u2=1.5*(ux*ux+uy*uy), rw0=rho*4/9, rw1=rho/9, rw2=rho/36;
+      const uxy=ux+uy, uyx=uy-ux;
+      const e0=rw0*(1-u2),
+            e1=rw1*(1+3*ux+4.5*ux*ux-u2), e3=rw1*(1-3*ux+4.5*ux*ux-u2),
+            e2=rw1*(1+3*uy+4.5*uy*uy-u2), e4=rw1*(1-3*uy+4.5*uy*uy-u2),
+            e5=rw2*(1+3*uxy+4.5*uxy*uxy-u2), e7=rw2*(1-3*uxy+4.5*uxy*uxy-u2),
+            e6=rw2*(1+3*uyx+4.5*uyx*uyx-u2), e8=rw2*(1-3*uyx+4.5*uyx*uyx-u2);
+      const p1=f1+(e1-f1)*OMEGA,p2=f2+(e2-f2)*OMEGA,p3=f3+(e3-f3)*OMEGA,
+            p4=f4+(e4-f4)*OMEGA,p5=f5+(e5-f5)*OMEGA,p6=f6+(e6-f6)*OMEGA,
+            p7=f7+(e7-f7)*OMEGA,p8=f8+(e8-f8)*OMEGA;
+      fB[i]=f0+(e0-f0)*OMEGA;
+      const iE=i+1,iWt=i-1,iN=i+W,iS=i-W;
+      if(solid[iE])   fB[n3+i]=p1; else fB[n1+iE]=p1;
+      if(solid[iN])   fB[n4+i]=p2; else fB[n2+iN]=p2;
+      if(solid[iWt])  fB[n1+i]=p3; else fB[n3+iWt]=p3;
+      if(solid[iS])   fB[n2+i]=p4; else fB[n4+iS]=p4;
+      if(solid[iN+1]) fB[n7+i]=p5; else fB[n5+iN+1]=p5;
+      if(solid[iN-1]) fB[n8+i]=p6; else fB[n6+iN-1]=p6;
+      if(solid[iS-1]) fB[n5+i]=p7; else fB[n7+iS-1]=p7;
+      if(solid[iS+1]) fB[n6+i]=p8; else fB[n8+iS+1]=p8;
     }
   }
-  // boundaries: inflow left/top/bottom at u0, zero-gradient outflow right
+  // edge cells stream too — without this the first interior ring never
+  // receives inflow and the field rots from the boundary in
+  edgePush();
+  // then re-prescribe: inflow (left/top/bottom) at u0, zero-gradient outflow right
   for(let y=0;y<H;y++){
-    const iL=y*W, iR=W-1+y*W, iR2=W-2+y*W;
+    const iL=y*W,iR=iL+W-1,iR2=iR-1;
     for(let d=0;d<9;d++){fB[d*N+iL]=eq(d,1,u0,0);fB[d*N+iR]=fB[d*N+iR2];}
-    UX[iL]=u0;UY[iL]=0;
+    UX[iL]=u0;UY[iL]=0;UX[iR]=UX[iR2];UY[iR]=UY[iR2];
   }
-  for(let x=0;x<W;x++){
-    const iT=x, iB=x+(H-1)*W;
-    for(let d=0;d<9;d++){fB[d*N+iT]=eq(d,1,u0,0);fB[d*N+iB]=eq(d,1,u0,0);}
-    UX[iT]=u0;UY[iT]=0;UX[iB]=u0;UY[iB]=0;
+  for(let x=1;x<W-1;x++){
+    const iT=x,iBm=x+(H-1)*W;
+    for(let d=0;d<9;d++){fB[d*N+iT]=eq(d,1,u0,0);fB[d*N+iBm]=eq(d,1,u0,0);}
+    UX[iT]=u0;UY[iT]=0;UX[iBm]=u0;UY[iBm]=0;
   }
   const t=fA;fA=fB;fB=t;
+}
+function edgePush(){
+  const push=(x,y)=>{
+    const i=x+y*W;
+    for(let d=1;d<9;d++){
+      const xn=x+EX[d],yn=y+EY[d];
+      if(xn<1||xn>=W-1||yn<1||yn>=H-1)continue;  // only into interior cells
+      const j=xn+yn*W;
+      if(!solid[j])fB[d*N+j]=fA[d*N+i];
+    }
+  };
+  for(let x=0;x<W;x++){push(x,0);push(x,H-1);}
+  for(let y=1;y<H-1;y++){push(0,y);push(W-1,y);}
 }
 
 /* ---- tracer particles ---- */
@@ -240,15 +286,16 @@ function moveParticles(){
 /* ---- render ---- */
 function render(){
   const d=img.data,mode=document.getElementById("viz").value;
-  const vs=2200,ss=1/(1.6*u0);
+  const vs=7/u0,ss=1/(1.7*u0);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const i=x+y*W,o=4*i;
     if(solid[i]){d[o]=12;d[o+1]=94;d[o+2]=66;d[o+3]=255;continue;}
     let r=247,g=250,b=248;
     if(mode==="vort"&&x>0&&x<W-1&&y>0&&y<H-1){
       const w=(UY[i+1]-UY[i-1]-(UX[i+W]-UX[i-W]))*0.5*vs;
-      if(w>0){const t=Math.min(w,1);r=247+t*8;g=250-t*150;b=248-t*170;}
-      else{const t=Math.min(-w,1);r=247-t*180;g=250-t*110;b=248+t*7;}
+      const t=Math.sqrt(Math.min(Math.abs(w),1));  // gamma so wake structure isn't one flat blob
+      if(w>0){r=250;g=250-t*158;b=248-t*175;}
+      else{r=247-t*192;g=250-t*118;b=250;}
     }else if(mode==="speed"){
       const t=Math.min(Math.hypot(UX[i],UY[i])*ss,1);
       r=247-t*215;g=250-t*95;b=248-t*150;
@@ -265,11 +312,21 @@ function render(){
 }
 
 /* ---- main loop ---- */
-let stepsPF=10,stepCount=0,lastT=performance.now();
+let stepCount=0,totalSteps=0,checkPhase=0,lastT=performance.now();
+const LBMTEST=new URLSearchParams(location.search).has("lbmtest");
+function selfCheck(){
+  let mx=0,bad=0;
+  for(let i=0;i<N;i++){
+    const s=Math.hypot(UX[i],UY[i]);
+    if(!isFinite(s))bad++;else if(s>mx)mx=s;
+  }
+  console.log("LBMCHECK maxU="+mx.toFixed(4)+" u0="+u0+" nonfinite="+bad);
+}
 function frame(){
   if(!paused){
     for(let s=0;s<stepsPF;s++)step();
-    stepCount+=stepsPF;
+    stepCount+=stepsPF;totalSteps+=stepsPF;
+    if(checkPhase===0&&totalSteps>=800){checkPhase=1;selfCheck();}
     if(document.getElementById("parts").checked)moveParticles();
     render();
   }
@@ -366,6 +423,13 @@ syncLabels();
 if(ranked.length)document.getElementById("sellbl").textContent=selId+" (nearest raw CFD)";
 alloc(320);
 drawCharts();
+if(LBMTEST){ // synchronous burst: steady run, then an alpha change (re-rasterize), then more
+  console.log("LBMBOOT test mode");
+  for(let s=0;s<800;s++)step(); selfCheck();
+  alphaEl.value="12";alphaDeg=12;syncLabels();rasterize();
+  for(let s=0;s<800;s++)step(); selfCheck();
+  render();
+}
 requestAnimationFrame(frame);
 </script>
 </body>
