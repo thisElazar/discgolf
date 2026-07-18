@@ -116,6 +116,7 @@
         <button id="btn_save">Download JSON</button>
         <button id="btn_load">Load JSON</button>
         <button id="btn_share">Copy share link</button>
+        <button id="btn_tunnel">Wind tunnel 🌬️</button>
       </div>
       <input type="file" id="loadfile" accept=".json,application/json" hidden>
       <div class="hint" id="savemsg" style="margin-top:6px"></div>
@@ -522,6 +523,12 @@ document.getElementById("btn_share").addEventListener("click",async()=>{
   history.replaceState(null,"",url);
   try{await navigator.clipboard.writeText(url);msg("Share link copied to clipboard.");}
   catch(e){msg("Link is in the address bar — copy it from there.");}
+});
+document.getElementById("btn_tunnel").addEventListener("click",()=>{
+  const q=new URLSearchParams();
+  DESIGN_KEYS.forEach(k=>q.set(k,P[k]));
+  if(nameEl.value.trim())q.set("name",nameEl.value.trim());
+  location.href="wind_tunnel.html#design?"+q.toString();
 });
 
 /* ---- disc handed over from the database browser (index.html) via URL hash ---- */

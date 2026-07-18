@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disc Wind Tunnel</title>
+<style>
+  :root{
+    --bg:#eef2f0; --panel:#ffffff; --ink:#16241d; --muted:#5d6f66;
+    --line:#d6e0da; --accent:#12805a; --accent-d:#0c5e42; --cfd:#2563b0;
+    --shadow:0 1px 3px rgba(20,40,30,.08),0 6px 24px rgba(20,40,30,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;background:linear-gradient(100deg,var(--accent-d),var(--accent));color:#fff;
+         display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  header h1{margin:0;font-size:19px;letter-spacing:.2px}
+  header p{margin:0;font-size:13px;opacity:.9}
+  header a{color:#cfe8dd;font-size:13px;font-weight:700;text-decoration:none;margin-left:auto}
+  header a:hover{color:#fff}
+  .wrap{max-width:1180px;margin:20px auto;padding:0 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+        box-shadow:var(--shadow);padding:16px 18px;margin-bottom:20px}
+  .card h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+  canvas{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#f7faf8}
+  .ctrls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;margin-top:12px}
+  .ctrl{flex:1 1 150px;min-width:140px}
+  .ctrl label{display:block;font-size:12px;font-weight:700;margin-bottom:2px}
+  .ctrl .val{color:var(--accent-d);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--accent);height:22px}
+  select,button.act{padding:7px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;
+    font-size:13px;background:#fff;cursor:pointer}
+  button.act{font-weight:700;color:var(--accent-d)}
+  button.act:hover{border-color:var(--accent)}
+  .note{font-size:11.5px;color:var(--muted);margin-top:10px}
+  .stat{display:inline-block;margin-right:14px;font-size:12px;color:var(--muted)}
+  .stat b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .charts svg{width:100%;height:auto;display:block}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;font-weight:700;margin:8px 0 2px}
+  .legend .sw{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:10px}
+  .tile{background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+  .tile .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .tile .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .protag{display:inline-block;background:#eaf5f0;border:1px solid #b6e2c9;color:#0c5e42;
+          border-radius:7px;padding:2px 8px;font-size:11.5px;font-weight:700;margin-left:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🌬️ Disc Wind Tunnel</h1>
+  <p>Live 2-D flow around your disc's real cross-section + the raw 3-D CFD sweep data.</p>
+  <a href="index.html">← lab home</a>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Live section flow — lattice-Boltzmann, computed in your browser <span id="discname" class="protag" style="display:none"></span></h2>
+    <canvas id="tunnel" width="960" height="480"></canvas>
+    <div class="ctrls">
+      <div class="ctrl"><label>Angle of attack <span class="val" id="v_alpha"></span></label>
+        <input type="range" id="alpha" min="-4" max="14" step="0.5" value="5"></div>
+      <div class="ctrl"><label>Wind speed <span class="val" id="v_speed"></span></label>
+        <input type="range" id="speed" min="0.05" max="0.12" step="0.005" value="0.09"></div>
+      <div class="ctrl" style="flex:0 1 auto"><label>View</label>
+        <select id="viz"><option value="vort">Vorticity</option><option value="speed">Flow speed</option></select></div>
+      <div class="ctrl" style="flex:0 1 auto"><label>Grid</label>
+        <select id="qual"><option value="256">256 × 128</option><option value="320" selected>320 × 160</option><option value="400">400 × 200</option></select></div>
+      <div class="ctrl" style="flex:0 1 auto"><label>&nbsp;</label>
+        <label style="font-weight:600;font-size:13px"><input type="checkbox" id="parts" checked> tracer particles</label></div>
+      <div class="ctrl" style="flex:0 1 auto"><button class="act" id="pause">Pause</button>
+        <button class="act" id="reset">Reset flow</button>
+        <a class="act" id="editlink" style="text-decoration:none;display:inline-block" href="disc_designer.html">Edit in designer</a></div>
+    </div>
+    <div style="margin-top:10px">
+      <span class="stat">Re ≈ <b id="re">—</b></span>
+      <span class="stat">sim <b id="sps">—</b> steps/s</span>
+      <span class="stat">grid <b id="gsz">—</b></span>
+    </div>
+    <div class="note">Real fluid dynamics, honestly framed: this is a genuine 2-D lattice-Boltzmann (D2Q9 BGK)
+      simulation of air moving past your disc's actual center cross-section, running live on this page.
+      It shows qualitatively real behavior — stagnation, separation, vortex shedding, wake asymmetry with
+      angle of attack — but at a low Reynolds number (~10³ vs ~10⁵ in flight) and in 2-D, so it is a
+      <b>flow visualizer, not the source of our numbers</b>. The numbers come from the 3-D steady-RANS
+      sweep below.</div>
+  </div>
+
+  <div class="card">
+    <h2>The real data — 96 geometries × 7 angles of steady RANS (k-ω SST), <span id="nruns"></span> converged solves</h2>
+    <div class="legend">
+      <span><span class="sw" style="background:#c8d6cf"></span>all 96 sweep geometries</span>
+      <span><span class="sw" style="background:var(--accent)"></span><span id="sellbl">nearest sweep geometry</span></span>
+      <span><span class="sw" style="background:var(--cfd);border-bottom:2px dashed var(--cfd);height:0"></span>surrogate @ your disc</span>
+    </div>
+    <div style="margin:6px 0 12px">
+      <select id="geomsel"></select>
+    </div>
+    <div class="charts" id="charts"></div>
+    <h2 style="margin-top:18px">Surrogate coefficients @ your disc</h2>
+    <div class="grid2" id="coefftiles"></div>
+    <div class="note">Every grey curve is one geometry actually solved with OpenFOAM on the cluster
+      (<code>cfd/bigsweep/dataset.csv</code>). The dashed line is the degree-2 polynomial surrogate
+      (<code>cfd_surrogate.js</code>) evaluated at <i>your</i> disc's parameters — the same surrogate that
+      drives the designer's CFD flight path. Pick any sweep geometry from the dropdown to inspect its raw curve.</div>
+  </div>
+</div>
+
+<script src="cfd_surrogate.js"></script>
+<script src="cfd_flight.js"></script>
+<script src="cfd_sweep.js"></script>
+<script>
+/* ---- disc profile (port of disc_designer.html / disc_model.py) ---- */
+const clamp=(v,lo,hi)=>Math.min(Math.max(v,lo),hi);
+function zTop(p,r){const R=p.D_out_mm/2,R_in=R-p.rim_width_mm;
+  if(r<=R_in){const x=clamp(r/Math.max(R_in,1e-9),0,1);return p.rim_shoulder_mm+p.dome_mm*(1-x*x);}
+  const u=clamp((r-R_in)/Math.max(p.rim_width_mm,1e-9),0,1);
+  return p.parting_line_mm+(p.rim_shoulder_mm-p.parting_line_mm)*Math.pow(1-u,1/2);}
+function zBot(p,r){const R=p.D_out_mm/2,R_in=R-p.rim_width_mm;
+  if(r<=R_in)return zTop(p,r)-p.plate_thick_mm;
+  if(r>=R-p.nose_radius_mm){const t=clamp((r-(R-p.nose_radius_mm))/Math.max(p.nose_radius_mm,1e-9),0,1);
+    return p.parting_line_mm*(1-Math.sqrt(Math.max(1-t*t,0)));}
+  return 0;}
+
+/* ---- disc params from #design hash (same encoding as the designer) ---- */
+const DEFAULTS={D_out_mm:212,rim_width_mm:11.5,rim_shoulder_mm:16,parting_line_mm:9,dome_mm:5.5,
+                plate_thick_mm:2.4,nose_radius_mm:2.0,density_gcc:.98};
+let P={...DEFAULTS},discName="";
+(function(){
+  const m=location.hash.match(/^#design\?(.*)$/);
+  if(!m)return;
+  const q=new URLSearchParams(m[1]);
+  const p={};
+  for(const k in DEFAULTS){const v=parseFloat(q.get(k));p[k]=isFinite(v)?v:DEFAULTS[k];}
+  P=p;discName=q.get("name")||"";
+  document.getElementById("editlink").href="disc_designer.html"+location.hash;
+})();
+if(discName){const el=document.getElementById("discname");el.style.display="";el.textContent=discName;}
+
+/* ================= LBM wind tunnel (D2Q9, BGK) ================= */
+const EX=[0,1,0,-1,0,1,-1,-1,1], EY=[0,0,1,0,-1,1,1,-1,-1],
+      WT=[4/9,1/9,1/9,1/9,1/9,1/36,1/36,1/36,1/36], OPP=[0,3,4,1,2,7,8,5,6];
+const TAU=0.58, NU=(TAU-0.5)/3;
+let W,H,N,fA,fB,solid,UX,UY,u0=0.09,alphaDeg=5,paused=false;
+const cv=document.getElementById("tunnel"),ctx=cv.getContext("2d");
+let img,off,octx;
+
+function alloc(w){
+  W=w;H=w/2;N=W*H;
+  fA=new Float32Array(9*N);fB=new Float32Array(9*N);
+  solid=new Uint8Array(N);UX=new Float32Array(N);UY=new Float32Array(N);
+  off=document.createElement("canvas");off.width=W;off.height=H;
+  octx=off.getContext("2d");img=octx.createImageData(W,H);
+  cv.width=W*3;cv.height=H*3;
+  document.getElementById("gsz").textContent=W+" × "+H;
+  rasterize();initFlow();seedParticles();
+}
+function rasterize(){
+  // disc chord spans ~42% of the tunnel; rotate section by alpha (nose-up positive)
+  const chord=0.42*W, s=chord/P.D_out_mm, R=P.D_out_mm/2;
+  const cx=0.36*W, cy=0.5*H, zmid=zTop(P,0)/2;
+  const a=alphaDeg*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+  solid.fill(0);
+  for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
+    let hit=0;
+    for(let sy=0;sy<2&&!hit;sy++)for(let sx=0;sx<2&&!hit;sx++){
+      const dx=x+0.25+0.5*sx-cx, dz=cy-(y+0.25+0.5*sy); // z up
+      const xr=dx*ca-dz*sa, zr=dx*sa+dz*ca;             // rotate into disc frame
+      const r=Math.abs(xr)/s, z=zr/s+zmid;
+      if(r<=R&&z>=zBot(P,r)&&z<=zTop(P,r))hit=1;
+    }
+    if(hit)solid[x+y*W]=1;
+  }
+  document.getElementById("re").textContent=Math.round(u0*chord/NU);
+}
+function eq(d,rho,ux,uy){const eu=EX[d]*ux+EY[d]*uy;
+  return WT[d]*rho*(1+3*eu+4.5*eu*eu-1.5*(ux*ux+uy*uy));}
+function initFlow(){
+  for(let i=0;i<N;i++)for(let d=0;d<9;d++)fA[d*N+i]=eq(d,1,u0,0);
+}
+function step(){
+  // collide + stream fused; bounce-back into solids
+  for(let y=1;y<H-1;y++){
+    const yw=y*W;
+    for(let x=1;x<W-1;x++){
+      const i=x+yw;
+      if(solid[i]){UX[i]=0;UY[i]=0;continue;}
+      let rho=0,mx=0,my=0;
+      for(let d=0;d<9;d++){const f=fA[d*N+i];rho+=f;mx+=EX[d]*f;my+=EY[d]*f;}
+      const ux=mx/rho,uy=my/rho;UX[i]=ux;UY[i]=uy;
+      const usq=1.5*(ux*ux+uy*uy);
+      for(let d=0;d<9;d++){
+        const eu=EX[d]*ux+EY[d]*uy;
+        const feq=WT[d]*rho*(1+3*eu+4.5*eu*eu-usq);
+        const fp=fA[d*N+i]+(feq-fA[d*N+i])/TAU;
+        const xn=x+EX[d],yn=y+EY[d],j=xn+yn*W;
+        if(solid[j])fB[OPP[d]*N+i]=fp; else fB[d*N+j]=fp;
+      }
+    }
+  }
+  // boundaries: inflow left/top/bottom at u0, zero-gradient outflow right
+  for(let y=0;y<H;y++){
+    const iL=y*W, iR=W-1+y*W, iR2=W-2+y*W;
+    for(let d=0;d<9;d++){fB[d*N+iL]=eq(d,1,u0,0);fB[d*N+iR]=fB[d*N+iR2];}
+    UX[iL]=u0;UY[iL]=0;
+  }
+  for(let x=0;x<W;x++){
+    const iT=x, iB=x+(H-1)*W;
+    for(let d=0;d<9;d++){fB[d*N+iT]=eq(d,1,u0,0);fB[d*N+iB]=eq(d,1,u0,0);}
+    UX[iT]=u0;UY[iT]=0;UX[iB]=u0;UY[iB]=0;
+  }
+  const t=fA;fA=fB;fB=t;
+}
+
+/* ---- tracer particles ---- */
+let px=new Float32Array(0),py=new Float32Array(0);
+function seedParticles(){
+  const n=2200;px=new Float32Array(n);py=new Float32Array(n);
+  for(let k=0;k<n;k++){px[k]=1+Math.random()*(W-2);py[k]=1+Math.random()*(H-2);}
+}
+function vel(x,y){ // bilinear sample
+  const x0=Math.min(Math.max(x|0,0),W-2),y0=Math.min(Math.max(y|0,0),H-2);
+  const tx=x-x0,ty=y-y0,i=x0+y0*W;
+  const ux=(UX[i]*(1-tx)+UX[i+1]*tx)*(1-ty)+(UX[i+W]*(1-tx)+UX[i+1+W]*tx)*ty;
+  const uy=(UY[i]*(1-tx)+UY[i+1]*tx)*(1-ty)+(UY[i+W]*(1-tx)+UY[i+1+W]*tx)*ty;
+  return[ux,uy];
+}
+function moveParticles(){
+  for(let k=0;k<px.length;k++){
+    const[ux,uy]=vel(px[k],py[k]);
+    px[k]+=ux*6;py[k]+=uy*6;
+    const i=(px[k]|0)+(py[k]|0)*W;
+    if(px[k]>=W-1||px[k]<0||py[k]<0||py[k]>=H-1||solid[i]){
+      px[k]=1;py[k]=1+Math.random()*(H-2);
+    }
+  }
+}
+
+/* ---- render ---- */
+function render(){
+  const d=img.data,mode=document.getElementById("viz").value;
+  const vs=2200,ss=1/(1.6*u0);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=x+y*W,o=4*i;
+    if(solid[i]){d[o]=12;d[o+1]=94;d[o+2]=66;d[o+3]=255;continue;}
+    let r=247,g=250,b=248;
+    if(mode==="vort"&&x>0&&x<W-1&&y>0&&y<H-1){
+      const w=(UY[i+1]-UY[i-1]-(UX[i+W]-UX[i-W]))*0.5*vs;
+      if(w>0){const t=Math.min(w,1);r=247+t*8;g=250-t*150;b=248-t*170;}
+      else{const t=Math.min(-w,1);r=247-t*180;g=250-t*110;b=248+t*7;}
+    }else if(mode==="speed"){
+      const t=Math.min(Math.hypot(UX[i],UY[i])*ss,1);
+      r=247-t*215;g=250-t*95;b=248-t*150;
+    }
+    d[o]=r;d[o+1]=g;d[o+2]=b;d[o+3]=255;
+  }
+  octx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(off,0,0,cv.width,cv.height);
+  if(document.getElementById("parts").checked){
+    ctx.fillStyle="rgba(22,36,29,.45)";
+    for(let k=0;k<px.length;k++)ctx.fillRect(px[k]*3,py[k]*3,2,2);
+  }
+}
+
+/* ---- main loop ---- */
+let stepsPF=10,stepCount=0,lastT=performance.now();
+function frame(){
+  if(!paused){
+    for(let s=0;s<stepsPF;s++)step();
+    stepCount+=stepsPF;
+    if(document.getElementById("parts").checked)moveParticles();
+    render();
+  }
+  const now=performance.now();
+  if(now-lastT>1000){
+    document.getElementById("sps").textContent=Math.round(stepCount*1000/(now-lastT));
+    stepCount=0;lastT=now;
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---- controls ---- */
+const alphaEl=document.getElementById("alpha"),speedEl=document.getElementById("speed");
+function syncLabels(){
+  document.getElementById("v_alpha").textContent=(+alphaEl.value).toFixed(1)+"°";
+  document.getElementById("v_speed").textContent=(+speedEl.value).toFixed(3)+" lattice u";
+}
+alphaEl.addEventListener("input",()=>{alphaDeg=+alphaEl.value;syncLabels();rasterize();drawCharts();});
+speedEl.addEventListener("input",()=>{u0=+speedEl.value;syncLabels();rasterize();});
+document.getElementById("qual").addEventListener("change",e=>alloc(+e.target.value));
+document.getElementById("pause").addEventListener("click",e=>{paused=!paused;e.target.textContent=paused?"Run":"Pause";});
+document.getElementById("reset").addEventListener("click",initFlow);
+
+/* ================= sweep data explorer ================= */
+const SWEEP=(typeof CFD_SWEEP!=="undefined")?CFD_SWEEP:[];
+const PC=["rim_width_mm","rim_shoulder_mm","parting_line_mm","dome_mm","plate_thick_mm","nose_radius_mm"];
+document.getElementById("nruns").textContent=SWEEP.reduce((s,g)=>s+g.a.length,0);
+const S=(typeof CFD_SURROGATE!=="undefined")?CFD_SURROGATE:null;
+function gDist(g){let s=0;for(let i=0;i<6;i++){const d=(P[PC[i]]-g.p[PC[i]])/(S?S.std[i]:1);s+=d*d;}return Math.sqrt(s);}
+const ranked=SWEEP.map(g=>({g,d:gDist(g)})).sort((a,b)=>a.d-b.d);
+let selId=ranked.length?ranked[0].g.id:null;
+const selEl=document.getElementById("geomsel");
+ranked.forEach(({g,d})=>{
+  const o=document.createElement("option");o.value=g.id;
+  o.textContent=`${g.id} — rim ${g.p.rim_width_mm} · dome ${g.p.dome_mm} · shoulder ${g.p.rim_shoulder_mm} (Δ ${d.toFixed(2)}σ from your disc)`;
+  selEl.appendChild(o);
+});
+selEl.addEventListener("change",()=>{selId=selEl.value;
+  document.getElementById("sellbl").textContent=selId+" (raw CFD)";drawCharts();});
+
+const AC=(typeof CFDFlight!=="undefined")?CFDFlight.cfdAero(P):null;
+function surrCurve(key,aDeg){
+  const a=aDeg*Math.PI/180;
+  if(key==="cl")return AC.CL0+AC.CLa*a;
+  if(key==="cd")return AC.CD0+AC.CDa*(a-AC.alpha0)*(a-AC.alpha0);
+  return AC.CM0+AC.CMa*a;
+}
+function drawCharts(){
+  if(!SWEEP.length){document.getElementById("charts").innerHTML=
+    '<div class="note">cfd_sweep.js not found — run cfd/bigsweep/collect.py and regenerate.</div>';return;}
+  const defs=[["cl","Cl — lift"],["cd","Cd — drag"],["cm","Cm — pitching moment"]];
+  const box=document.getElementById("charts");box.innerHTML="";
+  const Wc=320,Hc=232,padL=44,padR=10,padT=24,padB=30;
+  defs.forEach(([key,title])=>{
+    let lo=1e9,hi=-1e9;
+    SWEEP.forEach(g=>g[key].forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);}));
+    if(AC)for(let a=-4;a<=14;a+=1){const v=surrCurve(key,a);lo=Math.min(lo,v);hi=Math.max(hi,v);}
+    const span=hi-lo||1;lo-=span*.06;hi+=span*.06;
+    const X=a=>padL+(a+4)/18*(Wc-padL-padR), Y=v=>padT+(hi-v)/(hi-lo)*(Hc-padT-padB);
+    let s=`<svg viewBox="0 0 ${Wc} ${Hc}" role="img" aria-label="${title} vs angle of attack">`;
+    s+=`<text x="${padL}" y="14" font-size="11" font-weight="700" fill="#16241d">${title}</text>`;
+    for(const gx of[-4,0,5,10,14]){
+      s+=`<line x1="${X(gx)}" y1="${padT}" x2="${X(gx)}" y2="${Hc-padB}" stroke="#eef2f0"/>`+
+         `<text x="${X(gx)}" y="${Hc-14}" font-size="9" fill="#5d6f66" text-anchor="middle">${gx}°</text>`;
+    }
+    const yt=4;for(let k=0;k<=yt;k++){const v=lo+(hi-lo)*k/yt;
+      s+=`<line x1="${padL}" y1="${Y(v)}" x2="${Wc-padR}" y2="${Y(v)}" stroke="#eef2f0"/>`+
+         `<text x="${padL-4}" y="${Y(v)+3}" font-size="9" fill="#5d6f66" text-anchor="end">${v.toFixed(2)}</text>`;}
+    if(lo<0&&hi>0)s+=`<line x1="${padL}" y1="${Y(0)}" x2="${Wc-padR}" y2="${Y(0)}" stroke="#c9d6cf"/>`;
+    SWEEP.forEach(g=>{if(g.id===selId)return;
+      s+=`<polyline fill="none" stroke="#c8d6cf" stroke-width="1" points="${g.a.map((a,i)=>X(a).toFixed(1)+","+Y(g[key][i]).toFixed(1)).join(" ")}"/>`;});
+    if(AC){let pts="";for(let a=-4;a<=14;a+=0.5)pts+=X(a).toFixed(1)+","+Y(surrCurve(key,a)).toFixed(1)+" ";
+      s+=`<polyline fill="none" stroke="#2563b0" stroke-width="2" stroke-dasharray="6 4" points="${pts}"/>`;}
+    const sel=SWEEP.find(g=>g.id===selId);
+    if(sel){
+      s+=`<polyline fill="none" stroke="#12805a" stroke-width="2.4" points="${sel.a.map((a,i)=>X(a).toFixed(1)+","+Y(sel[key][i]).toFixed(1)).join(" ")}"/>`;
+      sel.a.forEach((a,i)=>{s+=`<circle cx="${X(a)}" cy="${Y(sel[key][i])}" r="3" fill="#12805a"/>`;});
+    }
+    const av=+alphaEl.value;
+    s+=`<line x1="${X(av)}" y1="${padT}" x2="${X(av)}" y2="${Hc-padB}" stroke="#f59e0b" stroke-dasharray="3 3"/>`;
+    s+="</svg>";
+    const div=document.createElement("div");div.innerHTML=s;box.appendChild(div.firstChild);
+  });
+  if(AC){
+    const t=[["CL0",AC.CL0,3],["CLa",AC.CLa,2],["CD0",AC.CD0,4],["CDa",AC.CDa,2],
+             ["α₀",(AC.alpha0*180/Math.PI),1,"°"],["CM0",AC.CM0,4],["CMa",AC.CMa,3]];
+    document.getElementById("coefftiles").innerHTML=t.map(x=>
+      `<div class="tile"><div class="k">${x[0]}</div><div class="v">${x[1].toFixed(x[2])}${x[3]||""}</div></div>`).join("");
+  }
+}
+
+/* ---- boot ---- */
+syncLabels();
+if(ranked.length)document.getElementById("sellbl").textContent=selId+" (nearest raw CFD)";
+alloc(320);
+drawCharts();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
