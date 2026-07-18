@@ -1,0 +1,20 @@
+forceCoeffs1
+{
+    type            forceCoeffs;
+    libs            (forces);
+    writeControl    timeStep;
+    writeInterval   1;
+    log             yes;
+    patches         (disc);
+    rho             rhoInf;
+    rhoInf          1.225;
+    magUInf         26.75;
+    lRef            0.212;
+    Aref            0.035299;
+
+    // rewritten per angle of attack by stamp_alpha.py
+    liftDir         (0 0 1);
+    dragDir         (1 0 0);
+    CofR            (0 0 0.0095);
+    pitchAxis       (0 1 0);
+}

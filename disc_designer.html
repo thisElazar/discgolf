@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parametric Disc Designer</title>
+<style>
+  :root{
+    --bg:#eef2f0; --panel:#ffffff; --ink:#16241d; --muted:#5d6f66;
+    --line:#d6e0da; --accent:#12805a; --accent-d:#0c5e42;
+    --pass:#16a34a; --fail:#dc2626;
+    --speed:#2563eb; --glide:#16a34a; --turn:#f59e0b; --fade:#dc2626;
+    --shadow:0 1px 3px rgba(20,40,30,.08),0 6px 24px rgba(20,40,30,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;background:linear-gradient(100deg,var(--accent-d),var(--accent));color:#fff}
+  header h1{margin:0;font-size:19px;letter-spacing:.2px}
+  header p{margin:4px 0 0;font-size:13px;opacity:.9}
+  .wrap{max-width:1240px;margin:20px auto;padding:0 20px;display:grid;
+        grid-template-columns:340px 1fr;gap:20px;align-items:start}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+        box-shadow:var(--shadow);padding:16px 18px}
+  .card h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+  .cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:10px 0 5px}
+  .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
+  .presets button{flex:1 1 45%;padding:8px 8px;border:1px solid var(--line);background:#fff;color:var(--ink);
+        border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;text-align:left}
+  .presets button small{display:block;font-weight:500;font-size:10.5px;color:var(--muted)}
+  .presets button:hover{border-color:var(--accent);color:var(--accent-d)}
+  .presets button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .presets button.active small{color:#d8efe5}
+  .presets.arch button{flex:1 1 auto;text-align:center}
+  #prodiscs{max-height:380px;overflow-y:auto;padding-right:6px;margin-right:-6px}
+  .slider{margin:13px 0}
+  .slider .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+  .slider label{font-size:13px;font-weight:600}
+  .slider .val{font-variant-numeric:tabular-nums;font-size:13px;color:var(--accent-d);font-weight:700}
+  .slider .hint{font-size:11px;color:var(--muted)}
+  input[type=range]{width:100%;accent-color:var(--accent);height:22px}
+  .stage{display:grid;grid-template-columns:1fr;gap:20px}
+  .disc-view{position:relative}
+  svg{width:100%;height:auto;display:block}
+  .legalbar{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:11px;font-weight:700;margin-bottom:14px}
+  .legalbar.ok{background:#e7f6ee;color:#0c5e42;border:1px solid #b6e2c9}
+  .legalbar.no{background:#fdeaea;color:#a71d1d;border:1px solid #f3c0c0}
+  .legalbar .dot{width:11px;height:11px;border-radius:50%}
+  .legalbar.ok .dot{background:var(--pass)} .legalbar.no .dot{background:var(--fail)}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .tile{background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .tile .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .tile .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .tile .v small{font-size:12px;font-weight:600;color:var(--muted)}
+  table.checks{width:100%;border-collapse:collapse;font-size:13px}
+  table.checks td,table.checks th{padding:7px 6px;border-bottom:1px solid var(--line)}
+  table.checks th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:right;font-weight:700}
+  table.checks th:first-child{text-align:left}
+  table.checks tr:last-child td{border-bottom:none}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:12px}
+  .badge.p{color:var(--pass)} .badge.f{color:var(--fail)}
+  .flight{display:flex;gap:12px;flex-wrap:wrap}
+  .fnum{flex:1 1 80px;text-align:center;border-radius:12px;padding:10px 6px;color:#fff}
+  .fnum .n{font-size:26px;font-weight:800;line-height:1}
+  .fnum .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;opacity:.95;margin-top:4px}
+  .fnum.ghost{background:#fff!important;border:2px dashed var(--line);color:var(--ink)}
+  .fnum.ghost .l{color:var(--muted)}
+  .flightlbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px}
+  .note{font-size:11.5px;color:var(--muted);margin-top:10px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .match{display:flex;align-items:baseline;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font-size:13px}
+  .match:last-child{border-bottom:none}
+  .match .rank{font-weight:800;color:var(--accent-d);font-size:15px;min-width:20px}
+  .match .name{font-weight:700}
+  .match .mfr{color:var(--muted);font-size:12px}
+  .match .specs{margin-left:auto;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);text-align:right}
+  .protag{display:inline-block;background:#eaf5f0;border:1px solid #b6e2c9;color:#0c5e42;
+          border-radius:7px;padding:2px 8px;font-size:11.5px;font-weight:700;margin-left:8px}
+  .handtoggle{display:flex;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;width:fit-content}
+  .handtoggle button{border:none;background:#fff;font:inherit;font-size:11.5px;font-weight:700;
+    padding:6px 11px;cursor:pointer;color:var(--muted);border-right:1px solid var(--line)}
+  .handtoggle button:last-child{border-right:none}
+  .handtoggle button.active{background:var(--accent);color:#fff}
+  @media(max-width:1000px){.wrap{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Parametric Disc Designer</h1>
+  <p>Shape a PDGA-legal disc golf disc in real time — start from a pro disc you already throw. Presets are derived from PDGA-certified measurements.</p>
+</header>
+
+<div class="wrap">
+  <!-- CONTROLS -->
+  <div class="card" id="controls">
+    <h2>Start from a pro disc</h2>
+    <div id="prodiscs"></div>
+    <div style="height:10px"></div>
+    <h2>Or a blank archetype</h2>
+    <div class="presets arch" id="presets"></div>
+    <div style="height:8px"></div>
+    <h2>Geometry</h2>
+    <div id="geo"></div>
+    <h2 style="margin-top:14px">Material</h2>
+    <div id="mat"></div>
+  </div>
+
+  <!-- STAGE -->
+  <div class="stage">
+    <div class="card disc-view">
+      <div id="legalbar" class="legalbar ok"><span class="dot"></span><span id="legaltext">PDGA LEGAL</span></div>
+      <svg id="svg" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid meet" aria-label="disc cross-section"></svg>
+      <div class="grid2" id="tiles" style="margin-top:14px"></div>
+      <div id="fidelity"></div>
+    </div>
+
+    <div class="two">
+      <div class="card">
+        <h2>PDGA legality checks</h2>
+        <table class="checks"><tbody id="checks"></tbody></table>
+      </div>
+      <div class="card">
+        <h2>Flight numbers</h2>
+        <div id="mfrflight"></div>
+        <div class="flightlbl">Our geometry estimate <span style="text-transform:none;letter-spacing:0;font-weight:600" id="estlbl"></span></div>
+        <div class="flight" id="flight"></div>
+        <div class="handtoggle" id="hand" style="margin-top:12px"></div>
+        <svg id="path" viewBox="0 0 300 200" style="margin-top:8px" aria-label="illustrative flight path"></svg>
+        <div class="note" id="estnote"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Closest PDGA-certified discs <span style="text-transform:none;letter-spacing:0;font-weight:600" id="dbcount"></span></h2>
+      <div id="matches"></div>
+      <div class="note">Nearest real discs to your current geometry (diameter, height, rim depth, rim width) in the PDGA certified-disc database. Regenerate with <code>scripts/build_disc_db.py</code>.</div>
+    </div>
+  </div>
+</div>
+
+<script src="disc_db.js"></script>
+<script src="pro_discs.js"></script>
+<script src="flight_fit.js"></script>
+<script src="cfd_surrogate.js"></script>
+<script src="cfd_flight.js"></script>
+<script>
+/* ---- compute (1:1 port of disc_model.py / disc_compute.js) ---- */
+const clamp=(v,lo,hi)=>Math.min(Math.max(v,lo),hi);
+function derived(p){const R=p.D_out_mm/2;return{R,R_in:R-p.rim_width_mm};}
+function zTop(p,r){const{R,R_in}=derived(p);if(r<=R_in){const x=clamp(r/Math.max(R_in,1e-9),0,1);return p.rim_shoulder_mm+p.dome_mm*(1-Math.pow(x,2));}const u=clamp((r-R_in)/Math.max(p.rim_width_mm,1e-9),0,1);const drop=p.rim_shoulder_mm-p.parting_line_mm;return p.parting_line_mm+drop*Math.pow(1-u,1/2);}
+function zBot(p,r){const{R,R_in}=derived(p);if(r<=R_in)return zTop(p,r)-p.plate_thick_mm;if(r>=R-p.nose_radius_mm){const t=clamp((r-(R-p.nose_radius_mm))/Math.max(p.nose_radius_mm,1e-9),0,1);return p.parting_line_mm*(1-Math.sqrt(Math.max(1-t*t,0)));}return 0;}
+function massProperties(p,n){n=n||3000;const{R,R_in}=derived(p);const dr=R/(n-1);let V=0,Iz=0,Vz=0,rimV=0;for(let i=0;i<n;i++){const r=R*i/(n-1);const top=zTop(p,r),bot=zBot(p,r);const h=Math.max(top-bot,0);const zmid=.5*(top+bot);const ringV=2*Math.PI*r*h*dr;V+=ringV;Vz+=ringV*zmid;if(r>R_in)rimV+=ringV;const r_cm=r/10,h_cm=h/10;const dm=p.density_gcc*2*Math.PI*r_cm*h_cm*(dr/10);Iz+=dm*r_cm*r_cm;}const V_cm3=V/1000;return{volume_cm3:V_cm3,mass_g:V_cm3*p.density_gcc,Iz_gcm2:Iz,cg_height_mm:V>0?Vz/V:0,rim_mass_fraction:V>0?rimV/V:0,cavity_depth_mm:zTop(p,R_in)-p.plate_thick_mm,total_height_mm:zTop(p,0),inner_rim_dia_mm:2*R_in};}
+function pdgaCheck(p,mp){mp=mp||massProperties(p);const D=p.D_out_mm/10,cav=mp.cavity_depth_mm/10,c=[];const add=(n,ok,v,l)=>c.push({name:n,pass:!!ok,value:v,limit:l});add("Outside diameter",D>=21&&D<=30,D.toFixed(1)+" cm","21–30 cm");add("Rim depth",cav>=.05*D&&cav<=.12*D&&cav>=1.1,cav.toFixed(2)+" cm",(.05*D).toFixed(2)+"–"+(.12*D).toFixed(2)+" & ≥1.1");add("Rim width",p.rim_width_mm/10<=2.6,(p.rim_width_mm/10).toFixed(2)+" cm","≤ 2.6 cm");add("Inner rim dia.",mp.inner_rim_dia_mm/10>=15.8,(mp.inner_rim_dia_mm/10).toFixed(1)+" cm","≥ 15.8 cm");add("Plate thickness",p.plate_thick_mm/10<=.5,(p.plate_thick_mm/10).toFixed(2)+" cm","≤ 0.5 cm");add("Weight / cm",mp.mass_g<=8.3*D,(mp.mass_g/D).toFixed(2)+" g/cm","≤ 8.3 g/cm");add("Absolute weight",mp.mass_g<=200,mp.mass_g.toFixed(0)+" g","≤ 200 g");add("Edge radius",p.nose_radius_mm>=1.6,p.nose_radius_mm.toFixed(1)+" mm","≥ 1.6 mm");return{checks:c,all:c.every(x=>x.pass)};}
+function flightEstimate(p,mp){
+  mp=mp||massProperties(p);
+  if(typeof FLIGHT_FIT!=="undefined"){
+    // calibrated linear models (scripts/fit_flight_numbers.py) — fit to the
+    // manufacturer flight numbers of the pro-disc presets (data/pro_discs.json)
+    const feat={rw:p.rim_width_mm,dia:p.D_out_mm,dome:p.dome_mm,
+      h:mp.total_height_mm,cav:mp.cavity_depth_mm,
+      pr:p.parting_line_mm/Math.max(p.rim_shoulder_mm,1e-9)};
+    const out={};
+    for(const k of ["speed","glide","turn","fade"]){
+      const m=FLIGHT_FIT[k];
+      let v=m.intercept;
+      for(const f in m.features)v+=m.features[f]*feat[f];
+      out[k]=Math.round(clamp(v,m.clamp[0],m.clamp[1])*10)/10;
+    }
+    return out;
+  }
+  // fallback: original uncalibrated heuristic (flight_fit.js missing)
+  const speed=clamp(1+(p.rim_width_mm-6)/1.65,1,14);const glide=clamp(2+p.dome_mm/1.4+(mp.total_height_mm-18)/6,1,7);const understab=(p.parting_line_mm/Math.max(p.rim_shoulder_mm,1e-9))+p.dome_mm/12;const turn=clamp(1-(understab-.55)*8,-5,1);const fade=clamp(.5+(p.rim_width_mm-10)/6-p.dome_mm/10,0,5);return{speed:Math.round(speed*10)/10,glide:Math.round(glide*10)/10,turn:Math.round(turn*10)/10,fade:Math.round(fade*10)/10};
+}
+
+/* ---- parameter definitions & archetype presets ---- */
+const PARAMS=[
+  {k:"D_out_mm",label:"Outside diameter",min:210,max:220,step:.1,unit:"mm",hint:"legal 210–300 · most discs 210–217",grp:"geo"},
+  {k:"rim_width_mm",label:"Rim width",min:8,max:26,step:.1,unit:"mm",hint:"putter ~10 · driver ~23 (≤26)",grp:"geo"},
+  {k:"rim_shoulder_mm",label:"Rim shoulder height",min:10,max:22,step:.1,unit:"mm",hint:"top of rim at inner edge",grp:"geo"},
+  {k:"parting_line_mm",label:"Parting-line height",min:5,max:16,step:.1,unit:"mm",hint:"outer-edge (widest) height → stability",grp:"geo"},
+  {k:"dome_mm",label:"Dome height",min:0,max:8,step:.1,unit:"mm",hint:"more dome → more glide/turn",grp:"geo"},
+  {k:"plate_thick_mm",label:"Flight-plate thickness",min:1.2,max:4.5,step:.05,unit:"mm",hint:"legal ≤5 mm",grp:"geo"},
+  {k:"nose_radius_mm",label:"Leading-edge radius",min:1.6,max:4,step:.05,unit:"mm",hint:"legal ≥1.6 mm",grp:"geo"},
+  {k:"density_gcc",label:"Plastic density",min:.85,max:1.00,step:.005,unit:"g/cc",hint:"PP/PE ~0.90–0.98 · microbubble blends lower",grp:"mat"},
+];
+const PRESETS={
+  Putter:{D_out_mm:212,rim_width_mm:11.5,rim_shoulder_mm:16,parting_line_mm:9,dome_mm:5.5,plate_thick_mm:2.4,nose_radius_mm:2.0,density_gcc:.98},
+  Midrange:{D_out_mm:212,rim_width_mm:13.5,rim_shoulder_mm:14.5,parting_line_mm:10,dome_mm:3.5,plate_thick_mm:2.2,nose_radius_mm:2.2,density_gcc:.97},
+  Fairway:{D_out_mm:212,rim_width_mm:17.5,rim_shoulder_mm:13.5,parting_line_mm:9,dome_mm:2.0,plate_thick_mm:1.9,nose_radius_mm:1.8,density_gcc:.95},
+  Distance:{D_out_mm:211,rim_width_mm:22,rim_shoulder_mm:13.5,parting_line_mm:8,dome_mm:1.0,plate_thick_mm:1.6,nose_radius_mm:1.7,density_gcc:.90},
+};
+
+/* ---- pro disc library ------------------------------------------------
+   PRO_DISCS is generated from data/pro_discs.json by scripts/build_disc_db.py
+   (loaded via pro_discs.js): PDGA-certified measurements (dia/h/rd/rw in mm,
+   wt in g) + manufacturer flight numbers. Geometry derivation below fills in
+   what the PDGA doesn't publish (plate thickness, parting line, nose radius)
+   with per-class estimates. */
+if(typeof PRO_DISCS==="undefined")window.PRO_DISCS=[];
+const CLASS_EST={ // per-class estimates for what PDGA doesn't publish
+  Putter:  {plate:3.2,nose:3.0},
+  Midrange:{plate:2.6,nose:2.5},
+  Fairway: {plate:2.0,nose:2.0},
+  Distance:{plate:1.7,nose:1.7},
+};
+function paramsFromCertified(d){
+  const est=CLASS_EST[d.cls];
+  const shoulder=d.rd+est.plate;                       // cavity depth = shoulder − plate
+  const dome=clamp(d.h-shoulder,0.2,8);                // total height = shoulder + dome
+  const stab=d.fl?d.fl[3]+d.fl[2]:1;                   // fade+turn: net stability (neutral if unknown)
+  const parting=clamp(shoulder*(0.60-0.04*stab),5,shoulder-2); // estimated: lower parting line → more overstable
+  const p={D_out_mm:d.dia,rim_width_mm:d.rw,rim_shoulder_mm:+shoulder.toFixed(1),
+    parting_line_mm:+parting.toFixed(1),dome_mm:+dome.toFixed(1),
+    plate_thick_mm:est.plate,nose_radius_mm:est.nose,density_gcc:.95};
+  // fit density so the model's mass lands on the certified max weight (clamped to real
+  // plastics). PDGA lists max weight rounded up, so also respect the exact 8.3 g/cm rule.
+  const target=Math.min(d.wt,8.3*d.dia/10)-0.5;
+  const vol=massProperties({...p,density_gcc:1}).volume_cm3;
+  p.density_gcc=+clamp(target/Math.max(vol,1e-9),.85,1.00).toFixed(3);
+  return p;
+}
+
+let P={...PRESETS.Putter};
+let activePro=null;     // index into PRO_DISCS, or null
+let importedDisc=null;  // disc handed over from the database browser (index.html), or null
+function activeDisc(){return activePro!==null?PRO_DISCS[activePro]:importedDisc;}
+
+/* ---- build controls ---- */
+const geoEl=document.getElementById("geo"),matEl=document.getElementById("mat");
+const sliderEls={};
+PARAMS.forEach(def=>{
+  const wrap=document.createElement("div");wrap.className="slider";
+  wrap.innerHTML=`<div class="row"><label>${def.label}</label><span class="val" id="v_${def.k}"></span></div>
+    <input type="range" min="${def.min}" max="${def.max}" step="${def.step}" id="s_${def.k}">
+    <div class="hint">${def.hint}</div>`;
+  (def.grp==="mat"?matEl:geoEl).appendChild(wrap);
+  const input=wrap.querySelector("input");
+  input.addEventListener("input",()=>{P[def.k]=parseFloat(input.value);clearActivePreset();activePro=null;importedDisc=null;render();});
+  sliderEls[def.k]={input,val:wrap.querySelector(`#v_${def.k}`),def};
+});
+
+const proEl=document.getElementById("prodiscs");
+if(!PRO_DISCS.length)proEl.innerHTML='<div class="hint" style="font-size:12px;color:var(--muted)">pro_discs.js not found — run <code>scripts/build_disc_db.py</code></div>';
+["Putter","Midrange","Fairway","Distance"].forEach(cls=>{
+  const lbl=document.createElement("div");lbl.className="cat";lbl.textContent=cls+"s";
+  proEl.appendChild(lbl);
+  const row=document.createElement("div");row.className="presets";
+  PRO_DISCS.forEach((d,i)=>{
+    if(d.cls!==cls)return;
+    const b=document.createElement("button");b.dataset.pro=i;
+    b.innerHTML=`${d.name}<small>${d.mfr} · ${d.fl.join(" / ")}</small>`;
+    b.addEventListener("click",()=>{P=paramsFromCertified(d);activePro=i;importedDisc=null;
+      setActivePreset(null);setActivePro(i);syncSliders();render();});
+    row.appendChild(b);
+  });
+  proEl.appendChild(row);
+});
+function setActivePro(i){proEl.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.pro==i));}
+
+const presetsEl=document.getElementById("presets");
+Object.keys(PRESETS).forEach(name=>{
+  const b=document.createElement("button");b.textContent=name;b.dataset.p=name;
+  b.addEventListener("click",()=>{P={...PRESETS[name]};activePro=null;importedDisc=null;
+    setActivePreset(name);setActivePro(-1);syncSliders();render();});
+  presetsEl.appendChild(b);
+});
+function setActivePreset(n){[...presetsEl.children].forEach(b=>b.classList.toggle("active",b.dataset.p===n));}
+function clearActivePreset(){setActivePreset(null);setActivePro(-1);}
+function syncSliders(){PARAMS.forEach(d=>{sliderEls[d.k].input.value=P[d.k];});}
+
+/* ---- closest certified discs ---- */
+const DB=(typeof DISC_DB!=="undefined")?DISC_DB:[];
+document.getElementById("dbcount").textContent=DB.length?`(${DB.length} discs, PDGA database)`:"(disc_db.js not found — run scripts/build_disc_db.py)";
+function closestDiscs(mp,k){
+  // distance in mm-space, each dimension scaled by a typical spread
+  const q=[P.D_out_mm,mp.total_height_mm,mp.cavity_depth_mm,P.rim_width_mm];
+  const w=[1/3,1/1.5,1/1,1/1];  // dia varies least per mm of "feel"; rim width/depth matter most
+  return DB.map(d=>{
+    let s=0;for(let j=0;j<4;j++){const diff=(q[j]-d[2+j])*w[j];s+=diff*diff;}
+    return{d,score:Math.sqrt(s)};
+  }).sort((a,b)=>a.score-b.score).slice(0,k);
+}
+
+/* ---- rendering ---- */
+const svg=document.getElementById("svg");
+function render(){
+  PARAMS.forEach(d=>{const s=sliderEls[d.k];s.val.textContent=P[d.k].toFixed(d.step<.1?2:1)+" "+d.unit;});
+  const mp=massProperties(P),chk=pdgaCheck(P,mp),fl=flightEstimate(P,mp);
+
+  /* legal bar */
+  const lb=document.getElementById("legalbar"),lt=document.getElementById("legaltext");
+  lb.className="legalbar "+(chk.all?"ok":"no");
+  const ad=activeDisc();
+  lt.innerHTML=(chk.all?"PDGA LEGAL":"OUT OF SPEC — "+chk.checks.filter(c=>!c.pass).map(c=>c.name).join(", "))
+    +(ad?`<span class="protag">based on ${ad.mfr} ${ad.name}</span>`:"");
+
+  /* cross-section */
+  drawSection(mp);
+
+  /* tiles */
+  const tiles=[
+    ["Mass",mp.mass_g.toFixed(0),"g"],
+    ["Height",mp.total_height_mm.toFixed(1),"mm"],
+    ["Rim mass",(mp.rim_mass_fraction*100).toFixed(0),"%"],
+    ["Inertia Iz",mp.Iz_gcm2.toFixed(0),"g·cm²"],
+    ["CG height",mp.cg_height_mm.toFixed(1),"mm"],
+    ["Rim depth",(mp.cavity_depth_mm/10).toFixed(2),"cm"],
+  ];
+  document.getElementById("tiles").innerHTML=tiles.map(t=>
+    `<div class="tile"><div class="k">${t[0]}</div><div class="v">${t[1]} <small>${t[2]}</small></div></div>`).join("");
+
+  /* certified-vs-model fidelity table */
+  const fid=document.getElementById("fidelity");
+  if(ad){
+    const d=ad;
+    const rows=[
+      ["Diameter",d.dia/10+" cm",(P.D_out_mm/10).toFixed(1)+" cm"],
+      ["Height",(d.h/10).toFixed(1)+" cm",(mp.total_height_mm/10).toFixed(1)+" cm"],
+      ["Rim depth",(d.rd/10).toFixed(1)+" cm",(mp.cavity_depth_mm/10).toFixed(2)+" cm"],
+      ["Rim width",(d.rw/10).toFixed(1)+" cm",(P.rim_width_mm/10).toFixed(2)+" cm"],
+      ["Max weight",d.wt.toFixed(1)+" g",mp.mass_g.toFixed(1)+" g"],
+    ];
+    fid.innerHTML=`<h2 style="margin-top:16px">PDGA-certified spec vs this model</h2>
+      <table class="checks"><tbody>
+      <tr><th>Property</th><th>Certified</th><th>Model</th></tr>
+      ${rows.map(r=>`<tr><td>${r[0]}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${r[1]}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${r[2]}</td></tr>`).join("")}
+      </tbody></table>
+      <div class="note">Certified values from the PDGA database. Plate thickness, parting line, and nose radius aren't published — the model estimates them per class, so small differences are expected.</div>`;
+  }else fid.innerHTML="";
+
+  /* checks */
+  document.getElementById("checks").innerHTML=chk.checks.map(c=>
+    `<tr><td>${c.name}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${c.value}</td>
+     <td style="color:var(--muted);font-size:12px">${c.limit}</td>
+     <td style="text-align:right"><span class="badge ${c.pass?'p':'f'}">${c.pass?'✓ pass':'✕ fail'}</span></td></tr>`).join("");
+
+  /* flight numbers: manufacturer (if pro preset) + our estimate */
+  const cols={speed:"var(--speed)",glide:"var(--glide)",turn:"var(--turn)",fade:"var(--fade)"};
+  const mfr=document.getElementById("mfrflight");
+  if(ad&&ad.fl){
+    mfr.innerHTML=`<div class="flightlbl">${ad.mfr} ${ad.name} — manufacturer rating</div>
+      <div class="flight">${["speed","glide","turn","fade"].map((k,j)=>
+      `<div class="fnum" style="background:${cols[k]}"><div class="n">${ad.fl[j]}</div><div class="l">${k}</div></div>`).join("")}</div>`;
+  }else mfr.innerHTML="";
+  document.getElementById("flight").innerHTML=["speed","glide","turn","fade"].map(k=>
+    `<div class="fnum ${ad&&ad.fl?"ghost":""}" style="background:${cols[k]}"><div class="n">${fl[k]}</div><div class="l">${k}</div></div>`).join("");
+  drawPath(fl);
+
+  /* closest certified discs */
+  if(DB.length){
+    const top=closestDiscs(mp,5);
+    document.getElementById("matches").innerHTML=top.map((m,i)=>
+      `<div class="match"><span class="rank">${i+1}</span>
+        <span class="name">${m.d[1]}</span><span class="mfr">${m.d[0]} · ${m.d[8]}</span>
+        <span class="specs">⌀ ${(m.d[2]/10).toFixed(1)} · h ${(m.d[3]/10).toFixed(1)} · depth ${(m.d[4]/10).toFixed(1)} · rim ${(m.d[5]/10).toFixed(1)} cm</span>
+      </div>`).join("");
+  }
+}
+
+function drawSection(mp){
+  const R=P.D_out_mm/2, N=200;
+  const pts=[];for(let i=0;i<N;i++){const r=R*i/(N-1);pts.push([r,zBot(P,r)]);}
+  for(let i=N-1;i>=0;i--){const r=R*i/(N-1);pts.push([r,zTop(P,r)]);}
+  // world bounds
+  const maxZ=mp.total_height_mm+2, W=600,H=240,pad=30;
+  const sx=(W-2*pad)/(2*R), sz=(H-2*pad)/maxZ, s=Math.min(sx,sz);
+  const cx=W/2, gy=H-pad; // ground baseline
+  const X=(r,sgn)=>cx+sgn*r*s, Y=z=>gy-z*s;
+  const half=sgn=>{let d="M";pts.forEach((pt,i)=>{d+=(i?"L":"")+X(pt[0],sgn).toFixed(1)+","+Y(pt[1]).toFixed(1)+" ";});return d+"Z";};
+  const grid=`<line x1="${pad}" y1="${gy}" x2="${W-pad}" y2="${gy}" stroke="#c9d6cf" stroke-dasharray="3 3"/>
+    <line x1="${cx}" y1="${pad-6}" x2="${cx}" y2="${gy}" stroke="#e0e8e3"/>`;
+  const dimW=`<text x="${cx}" y="${H-6}" text-anchor="middle" fill="#5d6f66" font-size="11">${(P.D_out_mm/10).toFixed(1)} cm diameter</text>`;
+  svg.innerHTML=grid+
+    `<path d="${half(1)}" fill="#1d9b6c" fill-opacity=".9" stroke="#0c5e42" stroke-width="1.3"/>`+
+    `<path d="${half(-1)}" fill="#1d9b6c" fill-opacity=".9" stroke="#0c5e42" stroke-width="1.3"/>`+
+    dimW;
+}
+
+/* ---- throw style: which way turn/fade break depends on hand + grip ----
+   RHBH and LHFH: turn drifts right, fade breaks left.
+   LHBH and RHFH: the exact mirror. */
+const THROW_STYLES=["RHBH","RHFH","LHBH","LHFH"];
+const THROW_MIRROR={RHBH:1,LHFH:1,RHFH:-1,LHBH:-1};
+let throwStyle="RHBH";
+const handEl=document.getElementById("hand");
+THROW_STYLES.forEach(s=>{
+  const b=document.createElement("button");b.textContent=s;b.dataset.ts=s;
+  b.addEventListener("click",()=>{throwStyle=s;
+    [...handEl.children].forEach(x=>x.classList.toggle("active",x.dataset.ts===s));render();});
+  handEl.appendChild(b);
+});
+handEl.firstChild.classList.add("active");
+
+function pathFor(fl,mirror,teeY,topY,cx){
+  const dist=fl.speed*7+fl.glide*8; // ~feet
+  const maxDist=14*7+7*8;
+  const span=teeY-topY, amp=70;
+  const rightPush=Math.max(0,-fl.turn), leftPush=fl.fade;
+  let d="M";const K=60;
+  for(let i=0;i<=K;i++){const t=i/K;
+    const y=teeY-span*(dist/maxDist)*t;
+    const dx=rightPush*(amp/5)*Math.sin(Math.PI*t*0.92)-leftPush*(amp/6)*Math.pow(clamp((t-.45)/.55,0,1),2);
+    d+=(i?"L":"")+(cx+mirror*dx).toFixed(1)+","+y.toFixed(1)+" ";}
+  return d;
+}
+function drawPath(fl){
+  const el=document.getElementById("path"),W=300,Ht=200,pad=16;
+  const teeY=Ht-pad, topY=pad+10, cx=W/2, span=teeY-topY;
+  const mirror=THROW_MIRROR[throwStyle];
+  const ad=activeDisc();
+
+  // CFD-surrogate physics: geometry -> aero coeffs -> real 6-DOF trajectory.
+  // Falls back to the old flight-number heuristic path if the CFD files are absent.
+  let cfd=null;
+  if(typeof CFDFlight!=="undefined" && typeof CFD_SURROGATE!=="undefined"){
+    try{
+      const res=CFDFlight.simulateFlight(P,massProperties(P),{v0:24,launch_deg:10,handed:"RHBH"});
+      const pxPerFt=span/250;                       // ~big-arm distance fills the box
+      let d="M"; const N=res.x.length, step=Math.max(1,Math.floor(N/80));
+      for(let i=0;i<N;i+=step){                      // x downrange -> up; +y (left) -> across
+        const vx=cx-mirror*(res.y[i]/0.3048)*pxPerFt;
+        const vy=teeY-Math.min((res.x[i]/0.3048)*pxPerFt,span);
+        d+=(d.length>1?"L":"")+vx.toFixed(1)+","+vy.toFixed(1)+" ";
+      }
+      cfd={d,distFt:res.distance_ft,apex:res.apex_m};
+    }catch(e){cfd=null;}
+  }
+
+  let paths="",legend="";
+  if(ad&&ad.fl){
+    const mfrFl={speed:ad.fl[0],glide:ad.fl[1],turn:ad.fl[2],fade:ad.fl[3]};
+    paths+=`<path d="${pathFor(mfrFl,mirror,teeY,topY,cx)}" fill="none" stroke="#12805a" stroke-width="2.6" stroke-linecap="round"/>`;
+  }
+  if(cfd){
+    paths+=`<path d="${cfd.d}" fill="none" stroke="#2563b0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+    legend=(ad&&ad.fl?`<text x="8" y="14" fill="#12805a" font-size="10" font-weight="700">— rated</text>`:"")+
+           `<text x="8" y="${ad&&ad.fl?27:14}" fill="#2563b0" font-size="10" font-weight="700">— CFD physics</text>`;
+  }else{
+    paths+=`<path d="${pathFor(fl,mirror,teeY,topY,cx)}" fill="none" stroke="#8aa89b" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>`;
+  }
+  const cap=cfd?`${cfd.distFt.toFixed(0)} ft · apex ${cfd.apex.toFixed(1)} m · ${throwStyle} (CFD)`
+               :`tee · illustrative ${throwStyle} flat throw`;
+  el.innerHTML=`<line x1="${cx}" y1="${teeY}" x2="${cx}" y2="${topY}" stroke="#e0e8e3" stroke-dasharray="4 4"/>
+    <circle cx="${cx}" cy="${teeY}" r="4" fill="#0c5e42"/>${paths}${legend}
+    <text x="${cx}" y="${Ht-2}" text-anchor="middle" fill="#5d6f66" font-size="10">${cap}</text>`;
+}
+
+/* ---- disc handed over from the database browser (index.html) via URL hash ---- */
+function loadFromHash(){
+  const m=location.hash.match(/^#disc\?(.*)$/);
+  if(!m)return false;
+  const q=new URLSearchParams(m[1]);
+  const num=k=>parseFloat(q.get(k));
+  const d={mfr:q.get("mfr")||"?",name:q.get("name")||"?",
+    dia:num("dia"),h:num("h"),rd:num("rd"),rw:num("rw"),wt:num("wt"),fl:null};
+  if([d.dia,d.h,d.rd,d.rw,d.wt].some(v=>!isFinite(v)))return false;
+  d.cls=d.rw<13?"Putter":d.rw<16?"Midrange":d.rw<21?"Fairway":"Distance";
+  P=paramsFromCertified(d);importedDisc=d;activePro=null;
+  // big vintage discs can exceed the default slider ranges — widen to fit
+  PARAMS.forEach(def=>{const s=sliderEls[def.k].input;
+    if(P[def.k]>parseFloat(s.max))s.max=Math.ceil(P[def.k]);
+    if(P[def.k]<parseFloat(s.min))s.min=Math.floor(P[def.k]);});
+  setActivePreset(null);setActivePro(-1);
+  return true;
+}
+if(typeof FLIGHT_FIT==="undefined"){
+  document.getElementById("estlbl").textContent="(uncalibrated heuristic — run scripts/fit_flight_numbers.py)";
+  document.getElementById("estnote").innerHTML="Our estimate is a rough geometry heuristic — <b>not calibrated, not CFD-validated</b>. Run <code>scripts/fit_flight_numbers.py</code> to generate <code>flight_fit.js</code>.";
+}else{
+  // pull calibration stats straight from the fit so this text can't go stale
+  const n=PRO_DISCS.length||"the";
+  const rm=k=>FLIGHT_FIT[k].loo_rmse.toFixed(1);
+  document.getElementById("estlbl").textContent=`(calibrated to ${n} pro discs)`;
+  document.getElementById("estnote").innerHTML=
+    `Our estimate is a linear model calibrated to the manufacturer ratings of the ${n} pro-disc presets `+
+    `(leave-one-out RMSE ${rm("speed")} speed · ${rm("glide")} glide · ${rm("turn")} turn · ${rm("fade")} fade — `+
+    `<code>data/flight_fit.json</code>). Trust it near real-disc geometry; it is <b>not CFD-validated</b> and `+
+    `extrapolates poorly to exotic shapes. Manufacturer numbers are the printed ratings athletes know.`;
+}
+if(!loadFromHash())setActivePreset("Putter");
+window.addEventListener("hashchange",()=>{if(loadFromHash()){syncSliders();render();}});
+syncSliders();render();
+</script>
+</body>
+</html>

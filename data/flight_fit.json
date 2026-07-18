@@ -1,0 +1,75 @@
+{
+  "method": "ridge regression (lambda=1.0 on standardized features), fit to manufacturer flight numbers of the 43 discs in pro_discs.json",
+  "caveats": [
+    "n=43; trust loo_rmse, not train_r2",
+    "targets are manufacturer marketing ratings, not measurements",
+    "feature 'pr' is derived from printed stability for these presets (circular) \u2014 it encodes our parting-line assumption, not independent evidence",
+    "feature sets were chosen partly by LOO comparison on the same 16 discs (mild selection bias); glide keeps a small dome term at slight LOO cost because the physical effect (dome -> glide) is expected and it keeps the designer's dome slider live"
+  ],
+  "features_glossary": {
+    "rw": "rim width (mm)",
+    "dia": "outside diameter (mm)",
+    "dome": "dome height (mm)",
+    "h": "total height (mm)",
+    "cav": "cavity depth (mm)",
+    "pr": "parting-line height / shoulder height"
+  },
+  "fit": {
+    "speed": {
+      "features": {
+        "rw": 0.71927,
+        "dia": -0.01596
+      },
+      "intercept": -1.46374,
+      "clamp": [
+        1,
+        14.5
+      ],
+      "train_r2": 0.957,
+      "loo_rmse": 0.811
+    },
+    "glide": {
+      "features": {
+        "rw": 0.15834,
+        "dia": 0.17813,
+        "pr": 10.6401,
+        "dome": -0.00691
+      },
+      "intercept": -41.89062,
+      "clamp": [
+        1,
+        7
+      ],
+      "train_r2": 0.719,
+      "loo_rmse": 0.736
+    },
+    "turn": {
+      "features": {
+        "pr": -11.55478,
+        "h": -0.01104,
+        "rw": -0.09124
+      },
+      "intercept": 7.31279,
+      "clamp": [
+        -5,
+        1
+      ],
+      "train_r2": 0.791,
+      "loo_rmse": 0.459
+    },
+    "fade": {
+      "features": {
+        "rw": 0.08581,
+        "pr": -12.85525,
+        "dome": -0.01089
+      },
+      "intercept": 7.68279,
+      "clamp": [
+        0,
+        5
+      ],
+      "train_r2": 0.821,
+      "loo_rmse": 0.451
+    }
+  }
+}
