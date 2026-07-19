@@ -7,7 +7,9 @@
 BASE="$HOME/cfd/disc/cfd"; BS="$BASE/bigsweep"; TPL="$BS/template"
 ALPHAS="-4 -1 2 5 8 11 14"; NA=7
 
-T=${SLURM_ARRAY_TASK_ID:-0}
+# TASK_OFFSET lets chunked submissions cover task ids beyond Slurm's
+# MaxArraySize (1001 here): real id = array index + offset.
+T=$(( ${SLURM_ARRAY_TASK_ID:-0} + ${TASK_OFFSET:-0} ))
 GI=$((T / NA)); AI=$((T % NA))
 A=$(echo $ALPHAS | cut -d' ' -f $((AI + 1)))
 GID=$(printf "geom_%03d" "$GI")
