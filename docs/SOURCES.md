@@ -34,6 +34,18 @@ July 2026.
 - **Potts & Crowther — Frisbee™ Aerodynamics / Aerodynamic performance of flying
   discs**, *Aircraft Engineering and Aerospace Technology* (Emerald).
   https://www.emerald.com/aeat/article/90/2/390/48679/Aerodynamic-performance-of-flying-discs
+  Author manuscript (free): https://shura.shu.ac.uk/14521/
+
+- **Kamaruddin, N. M. — Dynamics and Performance of Flying Discs** (PhD thesis,
+  University of Manchester, 2011).
+  https://research.manchester.ac.uk/en/studentTheses/dynamics-and-performance-of-flying-discs
+  The full data behind the 2018 paper: wind-tunnel CL/CD/CM for six commercial
+  golf discs (Aviar, Roc, Buzz, Wraith, Flick, Quarter K) at Re = 3.78×10⁵,
+  α −5°…+15°, with measured disc geometries (Table 4.1) and linear coefficient
+  fits (Table 5.6). **Our anchor data**: digitized into
+  `data/kamaruddin_wind_tunnel.json`; used to bias-correct the CFD surrogate
+  (`cfd/anchors/`) and to validate the 6-DOF trajectories
+  (`cfd/verify_trajectory.py`) against the thesis's simulated ranges.
 
 - **Hummel, S. A. — Frisbee Flight Simulation and Throw Biomechanics** (M.S.
   thesis, UC Davis, 2003).

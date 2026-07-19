@@ -62,6 +62,9 @@ def main():
     ap.add_argument("--n", type=int, default=96, help="target legal geometries")
     ap.add_argument("--oversample", type=int, default=8, help="LHS pool = n*oversample")
     ap.add_argument("--seed", type=int, default=1234)
+    ap.add_argument("--start-index", type=int, default=0,
+                    help="first geometry index; >0 appends to the existing manifest "
+                         "(expansion batch — use a fresh --seed so samples differ)")
     ap.add_argument("--n-theta", type=int, default=480)
     ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "geoms"))
     args = ap.parse_args()
@@ -77,7 +80,7 @@ def main():
 
     os.makedirs(args.out, exist_ok=True)
     manifest = []
-    for i, p in enumerate(kept):
+    for i, p in enumerate(kept, start=args.start_index):
         gid = f"geom_{i:03d}"
         stl = os.path.join(args.out, gid, "constant", "triSurface", "disc.stl")
         os.makedirs(os.path.dirname(stl), exist_ok=True)
@@ -103,8 +106,12 @@ def main():
                    "dome_mm", "plate_thick_mm", "nose_radius_mm")}}
         manifest.append(rec)
 
+    man_path = os.path.join(os.path.dirname(__file__), "geometries.json")
+    if args.start_index > 0 and os.path.exists(man_path):
+        prev = json.load(open(man_path))["geometries"]
+        manifest = [g for g in prev if g["index"] < args.start_index] + manifest
     json.dump({"n": len(manifest), "ranges": RANGES, "geometries": manifest},
-              open(os.path.join(os.path.dirname(__file__), "geometries.json"), "w"), indent=2)
+              open(man_path, "w"), indent=2)
     print(f"kept {len(kept)} legal geometries (from pool {len(pool)})")
     print(f"wrote STLs + case_params under {args.out}, manifest geometries.json")
 

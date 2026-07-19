@@ -162,11 +162,30 @@
 <script src="flight_fit.js"></script>
 <script src="cfd_surrogate.js"></script>
 <script src="cfd_flight.js"></script>
+<script src="cfd_flight_fit.js"></script>
 <script>
 /* ---- compute (profile/mass model in disc_common.js; checks + flight fit here) ---- */
 function pdgaCheck(p,mp){mp=mp||massProperties(p);const D=p.D_out_mm/10,cav=mp.cavity_depth_mm/10,c=[];const add=(n,ok,v,l)=>c.push({name:n,pass:!!ok,value:v,limit:l});add("Outside diameter",D>=21&&D<=30,D.toFixed(1)+" cm","21–30 cm");add("Rim depth",cav>=.05*D&&cav<=.12*D&&cav>=1.1,cav.toFixed(2)+" cm",(.05*D).toFixed(2)+"–"+(.12*D).toFixed(2)+" & ≥1.1");add("Rim width",p.rim_width_mm/10<=2.6,(p.rim_width_mm/10).toFixed(2)+" cm","≤ 2.6 cm");add("Inner rim dia.",mp.inner_rim_dia_mm/10>=15.8,(mp.inner_rim_dia_mm/10).toFixed(1)+" cm","≥ 15.8 cm");add("Plate thickness",p.plate_thick_mm/10<=.5,(p.plate_thick_mm/10).toFixed(2)+" cm","≤ 0.5 cm");add("Weight / cm",mp.mass_g<=8.3*D,(mp.mass_g/D).toFixed(2)+" g/cm","≤ 8.3 g/cm");add("Absolute weight",mp.mass_g<=200,mp.mass_g.toFixed(0)+" g","≤ 200 g");add("Edge radius",p.nose_radius_mm>=1.6,p.nose_radius_mm.toFixed(1)+" mm","≥ 1.6 mm");return{checks:c,all:c.every(x=>x.pass)};}
 function flightEstimate(p,mp){
   mp=mp||massProperties(p);
+  if(typeof CFD_FLIGHT_FIT!=="undefined"&&typeof CFDFlight!=="undefined"&&typeof CFD_SURROGATE!=="undefined"){
+    // CFD tier (scripts/fit_cfd_flight_numbers.py): surrogate aero
+    // coefficients -> ratings, calibrated to the pro-disc presets
+    const c=CFDFlight.cfdAero(p);
+    const a5=5*Math.PI/180;
+    const trim=c.CMa?(-c.CM0/c.CMa)*180/Math.PI:0;
+    const feat={CD0m:c.CD0,CDa:c.CDa,CL0:c.CL0,CM0:c.CM0,
+      CM5:c.CM0+c.CMa*a5,CD5:c.CD0+c.CDa*Math.pow(a5-c.alpha0,2),
+      trim:clamp(trim,-20,30)};
+    const out={};
+    for(const k of ["speed","glide","turn","fade"]){
+      const m=CFD_FLIGHT_FIT[k];
+      let v=m.intercept;
+      for(const f in m.features)v+=m.features[f]*feat[f];
+      out[k]=Math.round(clamp(v,m.clamp[0],m.clamp[1])*10)/10;
+    }
+    return out;
+  }
   if(typeof FLIGHT_FIT!=="undefined"){
     // calibrated linear models (scripts/fit_flight_numbers.py) — fit to the
     // manufacturer flight numbers of the pro-disc presets (data/pro_discs.json)
@@ -520,7 +539,16 @@ function loadFromHash(){
   setActivePreset(null);setActivePro(-1);
   return true;
 }
-if(typeof FLIGHT_FIT==="undefined"){
+if(typeof CFD_FLIGHT_FIT!=="undefined"&&typeof CFDFlight!=="undefined"&&typeof CFD_SURROGATE!=="undefined"){
+  const n=PRO_DISCS.length||"the";
+  const rm=k=>CFD_FLIGHT_FIT[k].loo_rmse.toFixed(1);
+  document.getElementById("estlbl").textContent=`(from CFD aero coefficients, calibrated to ${n} pro discs)`;
+  document.getElementById("estnote").innerHTML=
+    `These numbers come from the CFD surrogate's aerodynamic coefficients for this shape — drag floor, `+
+    `lift, and pitching moment — mapped to the rating scale with a linear model calibrated on the ${n} `+
+    `pro-disc presets (leave-one-out RMSE ${rm("speed")} speed · ${rm("glide")} glide · ${rm("turn")} turn `+
+    `· ${rm("fade")} fade; <code>data/cfd_flight_fit.json</code>). Manufacturer numbers are the printed ratings.`;
+}else if(typeof FLIGHT_FIT==="undefined"){
   document.getElementById("estlbl").textContent="(uncalibrated heuristic; run scripts/fit_flight_numbers.py)";
   document.getElementById("estnote").innerHTML="Our estimate is a rough geometry heuristic: not calibrated and not CFD-validated. Run <code>scripts/fit_flight_numbers.py</code> to generate <code>flight_fit.js</code>.";
 }else{

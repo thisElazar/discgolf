@@ -134,7 +134,10 @@
     <div class="note">Each grey curve is one geometry solved with OpenFOAM
       (<code>cfd/bigsweep/dataset.csv</code>). The dashed line is the degree-2 polynomial surrogate
       (<code>cfd_surrogate.js</code>) evaluated at the current disc's parameters; the same surrogate
-      drives the designer's flight path. The dropdown selects any sweep geometry's raw curve.</div>
+      drives the designer's flight path. The dropdown selects any sweep geometry's raw curve.
+      The surrogate is anchored to Kamaruddin's wind-tunnel measurements of three real discs
+      (lift ×0.85, drag ×0.98 — <code>cfd/anchors/</code>), so its lift sits a notch below the raw
+      CFD curves, which carry the coarse mesh's known high bias.</div>
   </div>
 </div>
 

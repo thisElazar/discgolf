@@ -154,10 +154,10 @@
       <table class="md" style="border-collapse:collapse;width:100%;font-size:13.5px">
         <tr><td style="padding:6px 10px">✅ <b>Geometry model</b> — solid-of-revolution profile, exact mass/inertia/CG, live PDGA legality (<code>disc_model.py</code>, designer app, Grasshopper)</td></tr>
         <tr><td style="padding:6px 10px">✅ <b>Data tier</b> — full PDGA certified-disc database; pro-disc presets derived from certified specs</td></tr>
-        <tr><td style="padding:6px 10px">✅ <b>Calibrated flight numbers</b> — app estimate fit to 43 pro discs' manufacturer ratings, LOO-validated (<code>scripts/fit_flight_numbers.py</code>)</td></tr>
-        <tr><td style="padding:6px 10px">✅ <b>Flight sim (Tier 2)</b> — 6-DOF dynamics with Hummel coefficients, calibrated to the disc-golf regime (<code>flight_sim.py</code>)</td></tr>
-        <tr><td style="padding:6px 10px">✅ <b>CFD sweep</b> — 96 geometries × 7 angles of steady RANS (k-ω SST), 669 converged solves (<code>cfd/bigsweep/</code>)</td></tr>
-        <tr><td style="padding:6px 10px">✅ <b>Surrogate model</b> — degree-2 polynomial fit of the sweep drives the designer's flight path and the wind-tunnel charts (<code>cfd_surrogate.js</code>)</td></tr>
+        <tr><td style="padding:6px 10px">✅ <b>Flight sim</b> — 6-DOF dynamics, validated against Kamaruddin's published golf-disc flights: putter/mid ranges within ±3% under matched assumptions (<code>flight_sim.py</code>, <code>cfd/verify_trajectory.py</code>)</td></tr>
+        <tr><td style="padding:6px 10px">✅ <b>CFD sweep</b> — 96 geometries × 7 angles of steady RANS (k-ω SST), 669 converged solves; expansion to 300 geometries in progress (<code>cfd/bigsweep/</code>)</td></tr>
+        <tr><td style="padding:6px 10px">✅ <b>Surrogate model</b> — degree-2 polynomial fit of the sweep, anchored to Kamaruddin's wind-tunnel level via three measured discs (lift ×0.85, drag ×0.98); drives the designer's flight path and the wind-tunnel charts (<code>cfd_surrogate.js</code>, <code>cfd/anchors/</code>)</td></tr>
+        <tr><td style="padding:6px 10px">✅ <b>CFD flight numbers</b> — speed/glide/turn/fade computed from the surrogate's aero coefficients, calibrated to 43 pro discs' ratings, LOO-validated (<code>scripts/fit_cfd_flight_numbers.py</code>; geometry-fit fallback: <code>scripts/fit_flight_numbers.py</code>)</td></tr>
         <tr><td style="padding:6px 10px">⏳ <b>Spinning CFD</b> — add rotation (MRF) to the RANS runs to capture spin-dependent effects</td></tr>
       </table>
     </div>
@@ -216,7 +216,8 @@
       </div>
       <div class="stiles" id="simtiles"></div>
       <div class="note">Aerodynamic coefficients come from the CFD surrogate evaluated at the selected disc's
-        geometry; the integrator adds gravity, spin, and gyroscopic precession (<code>cfd_flight.js</code>,
+        geometry, anchored to Kamaruddin's wind-tunnel measurements of real discs (<code>cfd/anchors/</code>);
+        the integrator adds gravity, spin, and gyroscopic precession (<code>cfd_flight.js</code>,
         the same physics as <code>flight_sim.py</code>). Positive hyzer tilts the outer edge down at release;
         nose angle pitches the nose up. Pin a trajectory, then change disc or throw to compare.</div>
     </div>

@@ -1,0 +1,70 @@
+{
+  "kCL": 0.8498,
+  "kCD": 0.9803,
+  "method": "least-squares scale CFD->measured; CL over alpha grid [-4.0, -1.0, 2.0, 5.0, 8.0, 11.0, 14.0], CD at alpha=0 (Kamaruddin Table 5.6); pooled over Aviar/Roc/Wraith",
+  "per_disc": {
+    "Aviar": {
+      "cfd_fit": {
+        "CL0": 0.11804,
+        "CLa": 2.9656,
+        "CD0": 0.07675,
+        "CDa": 2.39914,
+        "alpha0": -0.05075,
+        "CM0": -0.02707,
+        "CMa": 0.24537
+      },
+      "cfd_CL_at_0": 0.106,
+      "meas_CL0": 0.152,
+      "cfd_CD_at_0": 0.08,
+      "meas_CD0": 0.083,
+      "cfd_CLa_per_deg": 0.0518,
+      "meas_CLa_per_deg": 0.044,
+      "cfd_CMa_per_deg": 0.0043,
+      "meas_CMa_per_deg": 0.002,
+      "cfd_trim_deg": 6.3,
+      "meas_trim_deg": 8
+    },
+    "Roc": {
+      "cfd_fit": {
+        "CL0": 0.14602,
+        "CLa": 3.01993,
+        "CD0": 0.06355,
+        "CDa": 1.88101,
+        "alpha0": -0.08432,
+        "CM0": -0.03502,
+        "CMa": 0.2536
+      },
+      "cfd_CL_at_0": 0.1402,
+      "meas_CL0": 0.053,
+      "cfd_CD_at_0": 0.0751,
+      "meas_CD0": 0.067,
+      "cfd_CLa_per_deg": 0.0527,
+      "meas_CLa_per_deg": 0.043,
+      "cfd_CMa_per_deg": 0.0044,
+      "meas_CMa_per_deg": 0.003,
+      "cfd_trim_deg": 7.9,
+      "meas_trim_deg": 8
+    },
+    "Wraith": {
+      "cfd_fit": {
+        "CL0": 0.12221,
+        "CLa": 2.62757,
+        "CD0": 0.04878,
+        "CDa": 1.98805,
+        "alpha0": -0.05163,
+        "CM0": -0.02431,
+        "CMa": 0.34845
+      },
+      "cfd_CL_at_0": 0.1128,
+      "meas_CL0": 0.143,
+      "cfd_CD_at_0": 0.0536,
+      "meas_CD0": 0.055,
+      "cfd_CLa_per_deg": 0.0459,
+      "meas_CLa_per_deg": 0.04,
+      "cfd_CMa_per_deg": 0.0061,
+      "meas_CMa_per_deg": 0.006,
+      "cfd_trim_deg": 4.0,
+      "meas_trim_deg": 4
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "source": "Kamaruddin, N. M. (2011). Dynamics and Performance of Flying Discs. PhD thesis, University of Manchester. Table 5.6 (wind-tunnel linear fits, non-spinning, Re=3.78e5, alpha -5..+15 deg, moment about disc centre/half-chord) and Table 4.1 (measured disc geometries). Same experiments as Kamaruddin, Potts & Crowther 2018 (AEAT 90(2):390-397).",
+  "conventions": {
+    "slope_units": "per degree",
+    "alpha_range_deg": [-5, 15],
+    "reynolds": 378000,
+    "moment_reference": "disc centre (half chord)",
+    "spin": "non-spinning (spin effects on coefficients negligible per Potts 2005)"
+  },
+  "discs": {
+    "Aviar":    {"maker": "Innova",   "type": "putter",    "CL0": 0.152, "dCL_dalpha": 0.044, "CD0": 0.083, "CM0": -0.018, "dCM_dalpha": 0.002, "trim_deg": 8,
+                 "geom_m": {"diameter": 0.212, "thickness": 0.020, "inside_rim_diameter": 0.194, "rim_width": 0.009, "rim_depth": 0.015}},
+    "Roc":      {"maker": "Innova",   "type": "mid-range", "CL0": 0.053, "dCL_dalpha": 0.043, "CD0": 0.067, "CM0": -0.015, "dCM_dalpha": 0.003, "trim_deg": 8,
+                 "geom_m": {"diameter": 0.212, "thickness": 0.020, "inside_rim_diameter": 0.194, "rim_width": 0.009, "rim_depth": 0.012}},
+    "Buzz":     {"maker": "Discraft", "type": "mid-range", "CL0": 0.099, "dCL_dalpha": 0.041, "CD0": 0.061, "CM0": -0.033, "dCM_dalpha": 0.004, "trim_deg": 8,
+                 "geom_m": {"diameter": 0.217, "thickness": 0.019, "inside_rim_diameter": 0.193, "rim_width": 0.012, "rim_depth": 0.013}},
+    "Wraith":   {"maker": "Innova",   "type": "driver",    "CL0": 0.143, "dCL_dalpha": 0.040, "CD0": 0.055, "CM0": -0.020, "dCM_dalpha": 0.006, "trim_deg": 4,
+                 "geom_m": {"diameter": 0.211, "thickness": 0.014, "inside_rim_diameter": 0.169, "rim_width": 0.021, "rim_depth": 0.012}},
+    "Flick":    {"maker": "Discraft", "type": "driver",    "CL0": 0.100, "dCL_dalpha": 0.038, "CD0": 0.076, "CM0": -0.007, "dCM_dalpha": 0.008, "trim_deg": 1,
+                 "geom_m": {"diameter": 0.211, "thickness": 0.013, "inside_rim_diameter": 0.169, "rim_width": 0.021, "rim_depth": 0.011}},
+    "Storm":    {"maker": null,       "type": "driver",    "CL0": 0.107, "dCL_dalpha": 0.045, "CD0": 0.057, "CM0": -0.026, "dCM_dalpha": 0.004, "trim_deg": 7,
+                 "geom_m": null},
+    "QuarterK": {"maker": "Discwing", "type": "driver",    "CL0": 0.138, "dCL_dalpha": 0.039, "CD0": 0.065, "CM0": -0.038, "dCM_dalpha": 0.005, "trim_deg": 7,
+                 "geom_m": {"diameter": 0.213, "thickness": 0.020, "inside_rim_diameter": 0.167, "rim_width": 0.023, "rim_depth": 0.014}}
+  },
+  "xac_over_d": {"Aviar": 0.05, "Roc": 0.07, "Buzz": 0.10, "Storm": 0.09, "QuarterK": 0.13, "Wraith": 0.15, "Flick": 0.21},
+  "simulation_benchmarks": {
+    "note": "Kamaruddin ch.6 / 2018 paper Fig 7: 6-DOF sim driven by these measured coefficients. Launch: V=20 m/s, pitch 15 deg, roll 0, alpha 0, AdvR 0.5, mass 0.177 kg, d 0.214 m. Range = linear ground distance launch->landing.",
+    "range_m": {"putter_Aviar": 49, "midrange_Roc": 54, "driver_Wraith": 63, "frisbee": 48, "flat_plate_thin": 35}
+  }
+}

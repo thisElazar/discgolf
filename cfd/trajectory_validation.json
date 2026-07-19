@@ -1,0 +1,89 @@
+{
+  "assumptions matched to Kamaruddin (no damping, constant spin)": {
+    "Aviar": {
+      "range_m": 49.63459165974649,
+      "apex_m": 5.332296047577871,
+      "t_s": 4.711,
+      "lateral_end_m": 15.682185059394648,
+      "s_path": true,
+      "bench_m": 49.0,
+      "err_pct": 1.3
+    },
+    "Roc": {
+      "range_m": 52.59315625249287,
+      "apex_m": 5.0992031234350526,
+      "t_s": 4.988,
+      "lateral_end_m": -3.4080215903702364,
+      "s_path": true,
+      "bench_m": 54.0,
+      "err_pct": -2.6
+    },
+    "Wraith": {
+      "range_m": 54.23343717992954,
+      "apex_m": 6.302182503698192,
+      "t_s": 4.955,
+      "lateral_end_m": -3.53602761961378,
+      "s_path": true,
+      "bench_m": 63.0,
+      "err_pct": -13.9
+    }
+  },
+  "full model, no low-speed fade": {
+    "Aviar": {
+      "range_m": 42.978831855748844,
+      "apex_m": 3.4920485462694217,
+      "t_s": 3.072,
+      "lateral_end_m": 6.673197219734253,
+      "s_path": true,
+      "bench_m": 49.0,
+      "err_pct": -12.3
+    },
+    "Roc": {
+      "range_m": 46.014136629681516,
+      "apex_m": 2.9030484092494664,
+      "t_s": 3.145,
+      "lateral_end_m": 2.954211767501942,
+      "s_path": true,
+      "bench_m": 54.0,
+      "err_pct": -14.8
+    },
+    "Wraith": {
+      "range_m": 48.199426766041896,
+      "apex_m": 3.6016822182450214,
+      "t_s": 3.203,
+      "lateral_end_m": 6.889345677291927,
+      "s_path": true,
+      "bench_m": 63.0,
+      "err_pct": -23.5
+    }
+  },
+  "full model with app low-speed fade term": {
+    "Aviar": {
+      "range_m": 42.62867893396157,
+      "apex_m": 3.4920539503216452,
+      "t_s": 3.043,
+      "lateral_end_m": 6.656409653270405,
+      "s_path": true,
+      "bench_m": 49.0,
+      "err_pct": -13.0
+    },
+    "Roc": {
+      "range_m": 45.94669838629186,
+      "apex_m": 2.9030484092494664,
+      "t_s": 3.14,
+      "lateral_end_m": 3.046123631888961,
+      "s_path": true,
+      "bench_m": 54.0,
+      "err_pct": -14.9
+    },
+    "Wraith": {
+      "range_m": 48.18396119719013,
+      "apex_m": 3.6016822182450214,
+      "t_s": 3.202,
+      "lateral_end_m": 6.8958848286318934,
+      "s_path": true,
+      "bench_m": 63.0,
+      "err_pct": -23.5
+    }
+  }
+}

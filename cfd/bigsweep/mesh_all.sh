@@ -9,6 +9,7 @@ export BASE BS TPL
 
 ls -d "$BS"/geoms/geom_* | xargs -P "$J" -I{} bash -c '
   g="$1"; cd "$g" || exit 1
+  [ -f constant/polyMesh/owner ] && { echo "SKIP (meshed) $(basename $g)"; exit 0; }
   ln -sfn "$TPL/system" system
   mkdir -p constant
   cp "$TPL/constant/transportProperties" "$TPL/constant/turbulenceProperties" constant/ 2>/dev/null
