@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flight Game</title>
+<style>
+  :root{
+    --bg:#eef2f0; --panel:#ffffff; --ink:#16241d; --muted:#5d6f66;
+    --line:#d6e0da; --accent:#12805a; --accent-d:#0c5e42;
+    --shadow:0 1px 3px rgba(20,40,30,.08),0 6px 24px rgba(20,40,30,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink)}
+  header{padding:20px 24px 16px;background:linear-gradient(100deg,var(--accent-d),var(--accent));color:#fff}
+  header h1{margin:0;font-size:21px;letter-spacing:.2px}
+  header p{margin:5px 0 0;font-size:13px;opacity:.92}
+  .wrap{max-width:1040px;margin:20px auto;padding:0 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+        box-shadow:var(--shadow);padding:18px 20px;margin-bottom:20px}
+  .card h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+  .ctl{flex:1 1 118px;min-width:106px}
+  .ctl.grow{flex:2 1 180px}
+  .ctl.fix{flex:0 1 auto;min-width:0}
+  .ctl label{display:block;font-size:12px;font-weight:700;margin-bottom:2px}
+  .ctl .val{color:var(--accent-d);font-variant-numeric:tabular-nums;font-weight:600}
+  .ctl input[type=range]{width:100%;accent-color:var(--accent);height:22px}
+  .ctl select{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:9px;
+    font:inherit;font-size:13px;background:#fff}
+  .chip{padding:7px 11px;border:1px solid var(--line);border-radius:9px;background:#f7faf8;
+    font-size:13px;font-weight:600;color:var(--accent-d);white-space:nowrap;
+    font-variant-numeric:tabular-nums}
+  .chip.stepper{display:flex;align-items:stretch;padding:0;overflow:hidden}
+  .stepbtn{border:0;background:transparent;color:var(--accent-d);font:inherit;font-size:15px;
+    font-weight:800;width:30px;min-height:34px;padding:0;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+  .stepbtn:active{background:#dcebe3}
+  .cval{flex:1;display:flex;align-items:center;justify-content:center;padding:0 3px;
+    touch-action:none;cursor:ew-resize;user-select:none;-webkit-user-select:none}
+  #vv{min-width:112px}
+  #vl{min-width:48px}
+  button,select,input{touch-action:manipulation}
+  .playbtn{padding:9px 26px;border:1px solid var(--accent);border-radius:9px;background:var(--accent);
+    color:#fff;font:inherit;font-size:14px;font-weight:800;cursor:pointer}
+  .playbtn:hover{background:var(--accent-d);border-color:var(--accent-d)}
+  .secbtn{padding:9px 18px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    color:var(--accent-d);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+  .secbtn:hover{border-color:var(--accent)}
+  .obtns{display:flex;gap:8px;justify-content:center}
+  .modes{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .mbtn{flex:1;padding:7px 14px;border:0;background:#fff;color:var(--muted);
+    font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  .mbtn.on{background:var(--accent);color:#fff}
+  .stage{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  canvas{display:block;width:100%;aspect-ratio:16/9;cursor:crosshair;touch-action:none}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:10px}
+  .hint b{color:var(--accent-d)}
+  .ocard{position:absolute;left:50%;top:66%;transform:translate(-50%,-50%);
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+    padding:18px 24px;text-align:center;display:none;min-width:300px}
+  .ocard .res{font-size:21px;font-weight:800;color:var(--accent-d);margin-bottom:10px}
+  .ostats{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+  .ostat{background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:7px 11px;min-width:66px}
+  .ostat .k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .ostat .v{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:1px}
+  .ostat .v small{font-size:10.5px;font-weight:600;color:var(--muted)}
+  @media (max-width:640px){
+    .wrap{margin:14px auto;padding:0 12px}
+    .card{padding:14px 12px}
+    .bar{display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:row dense;gap:10px;align-items:end}
+    .ctl,.ctl.fix,.ctl.grow{min-width:0;width:100%}
+    .ctl.grow,#play_ctl,#lie_ctl{grid-column:1/-1}
+    .ctl select{width:100%;min-height:40px;font-size:16px}
+    .mbtn{min-height:40px}
+    #play{width:100%;min-height:44px}
+    .chip.stepper{width:100%}
+    .stepbtn{width:40px;min-height:40px}
+    #vv,#vl{min-width:0;font-size:12px}
+    .stage{overflow:visible}
+    canvas{border-radius:10px}
+    .ocard{min-width:0;width:min(320px,96%);padding:10px 12px;top:56%;z-index:5}
+    .ocard .res{font-size:17px;margin-bottom:6px}
+    .ostats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+    .ostat{min-width:0;padding:5px 8px}
+    .ostat .v{font-size:15px}
+    .obtns{flex-wrap:wrap}
+    .obtns button{flex:1 1 auto;min-height:44px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🥏 Flight Game</h1>
+  <p>Park the basket off the tee, or hit chains from your lie. Same physics as the flight sim.</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Throw at the basket</h2>
+    <div class="bar">
+      <div class="ctl fix"><label>Mode</label>
+        <div class="modes"><button class="mbtn on" id="m_drive">Drive</button><button class="mbtn" id="m_putt">Putt</button></div></div>
+      <div class="ctl grow"><label>Disc</label><select id="disc"></select></div>
+      <div class="ctl fix" style="flex-basis:104px"><label>Throw style</label>
+        <select id="style"><option>RHBH</option><option>RHFH</option><option>LHBH</option><option>LHFH</option></select></div>
+      <div class="ctl" id="lie_ctl" style="display:none"><label>Lie <span class="val" id="vd"></span></label>
+        <input type="range" id="s_d" min="10" max="70" step="1" value="30"></div>
+      <div class="ctl"><label>Aim <span class="val" id="va"></span></label>
+        <input type="range" id="s_a" min="-25" max="25" step="1" value="0"></div>
+      <div class="ctl"><label>Tilt <span class="val" id="vh"></span></label>
+        <input type="range" id="s_h" min="-25" max="25" step="1" value="0"></div>
+      <div class="ctl fix"><label>Speed</label>
+        <div class="chip stepper">
+          <button class="stepbtn" type="button" id="spd_dn" aria-label="Speed down">&minus;</button>
+          <span class="cval" id="vv"></span>
+          <button class="stepbtn" type="button" id="spd_up" aria-label="Speed up">+</button>
+        </div></div>
+      <div class="ctl fix"><label>Launch</label>
+        <div class="chip stepper">
+          <button class="stepbtn" type="button" id="lau_dn" aria-label="Launch down">&minus;</button>
+          <span class="cval" id="vl"></span>
+          <button class="stepbtn" type="button" id="lau_up" aria-label="Launch up">+</button>
+        </div></div>
+      <div class="ctl fix" id="play_ctl"><button class="playbtn" id="play">Play</button></div>
+    </div>
+    <div class="stage">
+      <canvas id="cv" width="960" height="540"></canvas>
+      <div class="ocard" id="ocard">
+        <div class="res" id="reshead"></div>
+        <div class="ostats">
+          <div class="ostat"><div class="k">Distance</div><div class="v" id="o_d"></div></div>
+          <div class="ostat"><div class="k">Apex</div><div class="v" id="o_a"></div></div>
+          <div class="ostat"><div class="k">Time</div><div class="v" id="o_t"></div></div>
+          <div class="ostat"><div class="k">From basket</div><div class="v" id="o_m"></div></div>
+        </div>
+        <div class="obtns">
+          <button class="playbtn" id="move">Move to Lie</button>
+          <button class="secbtn" id="tee">Throw again</button>
+          <button class="playbtn" id="again" style="display:none">New round</button>
+        </div>
+      </div>
+    </div>
+    <div class="hint">Drag the field to aim and set launch · scroll or <b>+</b>/<b>-</b> for power ·
+      <b>Space</b> throws, then moves to your lie · <b>R</b> back to tee</div>
+  </div>
+</div>
+
+<script src="disc_common.js"></script>
+<script src="pro_discs.js"></script>
+<script src="cfd_surrogate.js"></script>
+<script src="cfd_flight.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const DEG=Math.PI/180, M=0.3048, FT=1/M;
+
+  /* ---- camera / scene constants ---- */
+  const W=960, H=540, F=700, HOR=H*0.4, CX=W/2;
+  const DRIVE_FT=240;                 // drive-mode basket distance
+  const FW=18;                        // fairway half-width, metres
+  // per-mode camera and slider ranges
+  const CFG={
+    drive:{camB:8,  camH:2,   v:{min:15,max:33,step:0.5,val:24}, l:{min:0,max:20,step:0.5,val:10}},
+    putt: {camB:4.5,camH:1.55,v:{min:4, max:14,step:0.25,val:10}, l:{min:0,max:15,step:0.5,val:8}}
+  };
+  let mode="drive";
+  let camB=CFG.drive.camB, camH=CFG.drive.camH, camY=0;
+  let basketX=DRIVE_FT*M;
+  let throwCount=1;                   // throws taken this hole (moves, not rethrows)
+  let holeStartMode="drive";          // mode the hole began in; restored on back-to-tee
+
+  const cv=$("cv"), ctx=cv.getContext("2d");
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=W*dpr; cv.height=H*dpr;
+
+  function project(x,y,z){
+    const depth=x+camB;
+    if(depth<0.5) return null;
+    const s=F/depth;
+    return {sx:CX-(y-camY)*s, sy:HOR+(camH-z)*s, s:s};
+  }
+
+  /* ---- state ---- */
+  let simP={...PRESETS.Putter};
+  let res=null;                       // current simulateFlight result
+  let resDirty=true;                  // controls changed since the last run()
+  let state="ready";                  // ready | flying | landed
+  let aim=0;                          // degrees, positive = aim left
+  let spd=CFG.drive.v.val;            // release speed, m/s
+  let lau=CFG.drive.l.val;            // launch angle, degrees
+  let throwCos=1, throwSin=0;         // aim frozen at release
+  let idx=0, lastTs=0;                // playback sample cursor (1 sample = 1 ms)
+  const RATE=0.8;                     // slight slow motion
+  let makeIdx=-1;                     // putt mode: sample where the disc hits chains
+  let spinSign=-1, relV=24, relHyzer=0;  // frozen at release, drives the bank tilt
+
+  /* ---- controls ---- */
+  const dsel=$("disc");
+  const og=document.createElement("optgroup"); og.label="Archetypes";
+  Object.keys(PRESETS).forEach(k=>og.appendChild(new Option(k+" (archetype)","a:"+k)));
+  dsel.appendChild(og);
+  ["Putter","Midrange","Fairway","Distance"].forEach(cls=>{
+    const g=document.createElement("optgroup"); g.label=cls+"s";
+    PRO_DISCS.forEach((d,i)=>{ if(d.cls===cls) g.appendChild(new Option(d.name+" · "+d.mfr+" ("+d.fl.join("/")+")","p:"+i)); });
+    dsel.appendChild(g);
+  });
+  dsel.addEventListener("change",()=>{
+    const v=dsel.value;
+    if(v.startsWith("a:")) simP={...PRESETS[v.slice(2)]};
+    else simP=paramsFromCertified(PRO_DISCS[+v.slice(2)]);
+    onControls();
+  });
+
+  const S={a:$("s_a"), h:$("s_h")};
+  const lieS=$("s_d");
+  function labels(){
+    $("vv").textContent=spd.toFixed(1)+" m/s ("+(spd*2.23694).toFixed(0)+" mph)";
+    $("vl").textContent=lau.toFixed(1)+"°";
+    $("vh").textContent=+S.h.value===0?"flat":Math.abs(+S.h.value)+"° edge "+(S.h.value>0?"down":"up");
+    $("vd").textContent=lieS.value+" ft";
+    S.a.value=Math.round(aim);
+    $("va").textContent=Math.abs(aim)<0.5?"straight":Math.abs(aim).toFixed(0)+"° "+(aim>0?"left":"right");
+  }
+  S.h.addEventListener("input",onControls);
+  S.a.addEventListener("input",()=>setAim(+S.a.value));
+  function setSpd(v){                 // wheel and +/- keys
+    if(state==="flying") return;
+    const c=CFG[mode].v;
+    spd=Math.max(c.min,Math.min(c.max,Math.round(v/c.step)*c.step));
+    onControls();
+  }
+  function setLau(v){                 // vertical drag and W/S keys
+    if(state==="flying") return;
+    const c=CFG[mode].l;
+    lau=Math.max(c.min,Math.min(c.max,Math.round(v/c.step)*c.step));
+    onControls();
+  }
+  /* value chips: tap/hold steppers plus horizontal drag on the number */
+  const CHIP_STEP=0.5;                     // per tap, both chips
+  function bindStep(btn,apply){
+    let t=null,iv=null;
+    const stop=()=>{ clearTimeout(t); clearInterval(iv); t=iv=null; };
+    btn.addEventListener("pointerdown",e=>{
+      e.preventDefault();
+      try{btn.setPointerCapture(e.pointerId)}catch(_){}
+      apply();
+      t=setTimeout(()=>{ iv=setInterval(apply,83); },350);   // ~12 steps/s after 350 ms
+    });
+    btn.addEventListener("pointerup",stop);
+    btn.addEventListener("pointercancel",stop);
+    btn.addEventListener("lostpointercapture",stop);
+  }
+  function bindValDrag(el,get,set,cfg){    // slide across the mode range over ~180 px
+    let sx=null,sv=0;
+    el.addEventListener("pointerdown",e=>{
+      e.preventDefault();
+      sx=e.clientX; sv=get();
+      try{el.setPointerCapture(e.pointerId)}catch(_){}
+    });
+    el.addEventListener("pointermove",e=>{
+      if(sx===null) return;
+      const c=cfg();
+      set(sv+(e.clientX-sx)/180*(c.max-c.min));
+    });
+    el.addEventListener("pointerup",()=>{ sx=null; });
+    el.addEventListener("pointercancel",()=>{ sx=null; });
+  }
+  bindStep($("spd_dn"),()=>setSpd(spd-CHIP_STEP));
+  bindStep($("spd_up"),()=>setSpd(spd+CHIP_STEP));
+  bindStep($("lau_dn"),()=>setLau(lau-CHIP_STEP));
+  bindStep($("lau_up"),()=>setLau(lau+CHIP_STEP));
+  bindValDrag($("vv"),()=>spd,setSpd,()=>CFG[mode].v);
+  bindValDrag($("vl"),()=>lau,setLau,()=>CFG[mode].l);
+
+  $("style").addEventListener("change",onControls);
+  lieS.addEventListener("input",()=>{      // basket moves, flight itself is unchanged
+    basketX=+lieS.value*M;
+    labels();
+    if(state!=="flying") reset();
+  });
+
+  function currentHanded(){
+    const st=$("style").value;
+    return (st==="RHBH"||st==="LHFH")?"RHBH":"LHBH";   // forehand flips spin
+  }
+  function run(){
+    const mp=massProperties(simP);
+    res=CFDFlight.simulateFlight(simP,mp,{v0:spd,launch_deg:lau,
+      hyzer_deg:+S.h.value,nose_deg:0,handed:currentHanded()});
+    resDirty=false;
+  }
+  function onControls(){
+    resDirty=true; labels();
+    if(state!=="flying"){ reset(); }
+  }
+
+  /* ---- mode toggle ---- */
+  function applyMode(m){    // switch camera/ranges/disc; hole state untouched
+    mode=m;
+    $("m_drive").classList.toggle("on",m==="drive");
+    $("m_putt").classList.toggle("on",m==="putt");
+    $("lie_ctl").style.display=m==="putt"?"":"none";
+    const c=CFG[m];
+    camB=c.camB; camH=c.camH;
+    spd=c.v.val; lau=c.l.val;
+    S.h.value=0;
+    if(m==="putt"){
+      dsel.value="a:Putter"; simP={...PRESETS.Putter};
+      basketX=+lieS.value*M;
+    }else{
+      basketX=DRIVE_FT*M;
+    }
+    aim=0; makeIdx=-1; state="ready"; resDirty=true;
+  }
+  function setMode(m){      // manual toggle abandons the hole
+    if(mode===m) return;
+    throwCount=1; holeStartMode=m; ghost=null;
+    applyMode(m);
+    labels(); reset();
+  }
+  $("m_drive").addEventListener("click",()=>setMode("drive"));
+  $("m_putt").addEventListener("click",()=>setMode("putt"));
+
+  /* ---- aim ---- */
+  function setAim(a){
+    if(state==="flying") return;
+    aim=Math.max(-25,Math.min(25,a));
+    labels();
+    if(state!=="flying") draw();
+  }
+  let dragX=null, dragY=0, dragAim=0, dragLau=0;
+  cv.addEventListener("pointerdown",e=>{
+    if(state==="landed"){ snapshotGhost(); reset(); }   // dismiss the card, keep this lie for a rethrow
+    dragX=e.clientX; dragY=e.clientY; dragAim=aim; dragLau=lau;
+    try{cv.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  cv.addEventListener("pointermove",e=>{
+    if(dragX===null) return;
+    setAim(dragAim-(e.clientX-dragX)*0.09);       // horizontal drag aims
+    setLau(dragLau-(e.clientY-dragY)*0.06);       // drag up raises the launch
+  });
+  cv.addEventListener("pointerup",()=>{ dragX=null; });
+  cv.addEventListener("wheel",e=>{                // scroll over the field sets power
+    e.preventDefault();
+    const st=CFG[mode].v.step;
+    setSpd(spd+(e.deltaY<0?st:-st));
+  },{passive:false});
+  window.addEventListener("keydown",e=>{
+    if(e.target.tagName==="SELECT"||e.target.tagName==="INPUT") e.target.blur();
+    if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A"){ setAim(aim+1); e.preventDefault(); }
+    else if(e.key==="ArrowRight"||e.key==="d"||e.key==="D"){ setAim(aim-1); e.preventDefault(); }
+    else if(e.key==="ArrowUp"||e.key==="w"||e.key==="W"){ setLau(lau+CFG[mode].l.step); e.preventDefault(); }
+    else if(e.key==="ArrowDown"||e.key==="s"||e.key==="S"){ setLau(lau-CFG[mode].l.step); e.preventDefault(); }
+    else if(e.key==="+"||e.key==="="){ setSpd(spd+CFG[mode].v.step); }
+    else if(e.key==="-"||e.key==="_"){ setSpd(spd-CFG[mode].v.step); }
+    else if(e.key===" "){
+      if(state==="landed"){ if(makeIdx>=0) backToTee(); else moveToLie(); }
+      else play();
+      e.preventDefault();
+    }
+    else if(e.key==="r"||e.key==="R"){ backToTee(); }
+  });
+
+  /* ---- make detection (any mode) ----
+     A make is the flight path passing within MAKE_R of the pole while z sits
+     in the chains window. Same radius below the window is the cage band; it
+     counts as a plain miss, no deflection. Runs for every throw, so a drive
+     can hole out too. */
+  const MAKE_R=0.4, CHAIN_LO=0.6, CHAIN_HI=1.4;
+  function computeMake(){
+    makeIdx=-1;
+    if(!res) return;
+    for(let i=0;i<res.x.length;i++){
+      const [wx,wy,wz]=wpt(i);
+      if(Math.hypot(wx-basketX,wy)<=MAKE_R && wz>=CHAIN_LO && wz<=CHAIN_HI){
+        makeIdx=i; return;
+      }
+    }
+  }
+
+  /* ---- play / reset ---- */
+  function play(){
+    if(state==="flying") return;
+    if(state==="landed"){ snapshotGhost(); reset(); }
+    if(!res||resDirty) run();
+    throwCos=Math.cos(aim*DEG); throwSin=Math.sin(aim*DEG);
+    spinSign=currentHanded()==="RHBH"?-1:1;
+    relV=spd; relHyzer=+S.h.value;
+    computeMake();
+    idx=0; lastTs=0; state="flying";
+    $("ocard").style.display="none";
+    requestAnimationFrame(step);
+  }
+  function reset(){
+    state="ready"; idx=0; makeIdx=-1;
+    $("ocard").style.display="none";
+    draw();
+  }
+  // keep the last flight visible as a faint reference for the next toss
+  let ghost=null;
+  function snapshotGhost(){
+    if(!res) return;
+    const n=makeIdx>=0?makeIdx:res.x.length-1;
+    const step=Math.max(1,Math.floor(n/240)), pts=[];
+    for(let j=0;j<=n;j+=step) pts.push(wpt(j));
+    ghost=pts;
+  }
+  function throwAgain(){ if(state!=="landed") return; snapshotGhost(); reset(); }
+  $("play").addEventListener("click",play);
+  $("move").addEventListener("click",moveToLie);
+  $("tee").addEventListener("click",throwAgain);
+  $("again").addEventListener("click",backToTee);
+
+  function step(ts){
+    if(state!=="flying") return;
+    if(lastTs) idx+=(ts-lastTs)*RATE;   // trajectory sampled at 1 ms
+    lastTs=ts;
+    if(makeIdx>=0&&idx>=makeIdx){ idx=makeIdx; land(true); return; }
+    const n=res.x.length-1;
+    if(idx>=n){ idx=n; land(false); return; }
+    draw();
+    requestAnimationFrame(step);
+  }
+
+  function land(made){
+    state="landed";
+    draw();
+    const n=made?makeIdx:res.x.length-1;
+    const [lx,ly]=wpt(n);
+    const miss=made?0:Math.hypot(lx-basketX,ly)*FT;
+    let head;
+    if(made)
+      head=throwCount===1?"Ace!":"Holed out in "+throwCount+" throws";
+    else if(mode==="putt")
+      head=miss<=10?"Tap-in":miss.toFixed(0)+" ft away";
+    else
+      head=miss<=10?"Parked!":miss<=33?"Circle's edge":miss.toFixed(0)+" ft from the basket";
+    $("reshead").textContent=head;
+    $("move").style.display=made?"none":"";
+    $("tee").style.display=made?"none":"";
+    $("again").style.display=made?"":"none";
+    let apex=0; for(let j=0;j<=n;j++) if(res.z[j]>apex) apex=res.z[j];
+    $("o_d").innerHTML=(Math.hypot(res.x[n],res.y[n])*FT).toFixed(0)+" <small>ft</small>";
+    $("o_a").innerHTML=(apex*FT).toFixed(0)+" <small>ft</small>";
+    $("o_t").innerHTML=(n*1e-3).toFixed(1)+" <small>s</small>";
+    $("o_m").innerHTML=miss.toFixed(0)+" <small>ft</small>";
+    $("ocard").style.display="block";
+  }
+
+  /* ---- hole play ---- */
+  function moveToLie(){     // re-base the world at the landing spot, facing the basket
+    if(state!=="landed"||makeIdx>=0||!res) return;
+    const n=res.x.length-1;
+    const [lx,ly]=wpt(n);
+    const distFt=Math.max(10,Math.hypot(lx-basketX,ly)*FT);
+    throwCount++;
+    if(distFt<=70){
+      if(mode!=="putt") applyMode("putt");
+      lieS.value=Math.round(Math.min(70,distFt));
+      basketX=+lieS.value*M;
+    }else{
+      if(mode!=="drive") applyMode("drive");
+      basketX=distFt*M;
+    }
+    aim=0; makeIdx=-1; resDirty=true; ghost=null;
+    labels(); reset();
+  }
+  function backToTee(){     // fresh hole in the mode the last one started in
+    throwCount=1; ghost=null;
+    applyMode(holeStartMode);
+    labels(); reset();
+  }
+
+  /* ---- world helpers ---- */
+  function wpt(i){    // trajectory sample i rotated by the frozen aim heading
+    const x=res.x[i], y=res.y[i];
+    return [x*throwCos-y*throwSin, x*throwSin+y*throwCos, res.z[i]];
+  }
+
+  /* ---- scene painting ---- */
+  // clouds live in screen space; trees are fixed world positions in the rough,
+  // listed far to near so painting order matches depth
+  const CLOUDS=[[150,62,1],[500,40,1.35],[830,80,0.75]];
+  const TREES=[
+    {x:138,y: 43,  h:10,  t:0,c:"#3b6a52"},
+    {x:126,y:-40,  h: 9,  t:1,c:"#4a7d5f"},
+    {x:112,y: 38,  h: 8.5,t:0,c:"#43765b"},
+    {x: 97,y:-36,  h: 9.5,t:1,c:"#528a67"},
+    {x: 84,y: 34,  h: 8,  t:1,c:"#4a7d5f"},
+    {x: 72,y:-32,  h: 9,  t:0,c:"#3b6a52"},
+    {x: 61,y: 30,  h: 7.5,t:1,c:"#57906b"},
+    {x: 51,y:-28,  h: 8,  t:0,c:"#43765b"},
+    {x: 42,y: 26.5,h: 7,  t:0,c:"#3b6a52"},
+    {x: 35,y:-25,  h: 6.5,t:1,c:"#4a7d5f"},
+    {x: 29,y: 24,  h: 6,  t:0,c:"#43765b"}
+  ];
+  function skyGround(){
+    const sky=ctx.createLinearGradient(0,0,0,HOR);
+    sky.addColorStop(0,"#b7d3e8"); sky.addColorStop(1,"#e8f2f7");
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,HOR);
+    // clouds
+    ctx.fillStyle="rgba(255,255,255,.85)";
+    for(const [cx,cy,k] of CLOUDS){
+      ctx.beginPath();
+      ctx.ellipse(cx-34*k,cy+6*k,30*k,14*k,0,0,7);
+      ctx.ellipse(cx+2*k,cy-5*k,36*k,19*k,0,0,7);
+      ctx.ellipse(cx+40*k,cy+7*k,32*k,13*k,0,0,7);
+      ctx.fill();
+    }
+    // two tree lines on the horizon
+    for(const [amp,base,col] of [[6,11,"#5c8a70"],[9,17,"#3b6a52"]]){
+      ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(0,HOR);
+      for(let px=0;px<=W;px+=16)
+        ctx.lineTo(px,HOR-base-amp*(0.6*Math.sin(px*0.031)+0.4*Math.sin(px*0.011+2.1)));
+      ctx.lineTo(W,HOR); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle="#7fae88"; ctx.fillRect(0,HOR,W,H-HOR);   // rough
+  }
+  function tree(tr){
+    const p=project(tr.x,tr.y,0);
+    if(!p) return;
+    const s=p.s, h=tr.h;
+    ctx.fillStyle="rgba(20,40,30,.13)";
+    ctx.beginPath(); ctx.ellipse(p.sx,p.sy,h*0.22*s,h*0.055*s,0,0,7); ctx.fill();
+    ctx.fillStyle="#6d5844";
+    if(tr.t===0){                       // conifer: trunk + three stacked tiers
+      ctx.fillRect(p.sx-0.09*s,p.sy-1.1*s,0.18*s,1.1*s);
+      ctx.fillStyle=tr.c;
+      const seg=(h-1)/3;
+      for(let k=0;k<3;k++){
+        const zb=0.8+k*seg, zt=zb+seg*1.7, hw=0.30*h*(1-k*0.26);
+        ctx.beginPath();
+        ctx.moveTo(p.sx-hw*s,p.sy-zb*s);
+        ctx.lineTo(p.sx+hw*s,p.sy-zb*s);
+        ctx.lineTo(p.sx,p.sy-zt*s);
+        ctx.closePath(); ctx.fill();
+      }
+    }else{                              // deciduous: trunk + round canopy
+      ctx.fillRect(p.sx-0.10*s,p.sy-h*0.5*s,0.20*s,h*0.5*s);
+      ctx.fillStyle=tr.c;
+      ctx.beginPath(); ctx.arc(p.sx-h*0.17*s,p.sy-h*0.52*s,h*0.24*s,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.sx+h*0.17*s,p.sy-h*0.54*s,h*0.25*s,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.sx,p.sy-h*0.68*s,h*0.28*s,0,7); ctx.fill();
+    }
+  }
+  function nature(){ for(const tr of TREES) tree(tr); }
+  function quad(x0,x1,fill,hw){   // ground quad, half-width hw (fairway width default)
+    hw=hw||FW;
+    const a=project(x0,hw,0), b=project(x0,-hw,0), c=project(x1,-hw,0), d=project(x1,hw,0);
+    if(!a||!b||!c||!d) return;
+    ctx.fillStyle=fill; ctx.beginPath();
+    ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.lineTo(c.sx,c.sy); ctx.lineTo(d.sx,d.sy);
+    ctx.closePath(); ctx.fill();
+  }
+  function fairway(){
+    const putt=mode==="putt";
+    const B=(putt?10:25)*M, nStripes=putt?10:17;
+    quad(-6.5,0,"#a5cf97");
+    for(let i=0;i<nStripes;i++) quad(i*B,(i+1)*B, i%2?"#99c78c":"#a5cf97");
+    if(putt){
+      // lie marker instead of a tee pad
+      const p=project(0,0,0);
+      if(p){
+        ctx.fillStyle="rgba(215,222,216,.85)";
+        ctx.beginPath(); ctx.ellipse(p.sx,p.sy,0.45*p.s,0.14*p.s,0,0,7); ctx.fill();
+      }
+    }else{
+      quad(-1.2,2.4,"rgba(215,222,216,.85)",1.1);   // tee pad
+    }
+    // distance lines + labels (labels along a fixed left column)
+    ctx.textAlign="left"; ctx.font="600 11px -apple-system,sans-serif";
+    let lastLabelY=1e9;
+    const stepFt=putt?10:50, maxFt=putt?80:400;
+    for(let ft=stepFt;ft<=maxFt;ft+=stepFt){
+      const x=ft*M;
+      const a=project(x,FW,0), b=project(x,-FW,0);
+      if(!a||!b) continue;
+      ctx.strokeStyle="rgba(255,255,255,.55)"; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke();
+      if(lastLabelY-a.sy>=13){
+        ctx.fillStyle="rgba(22,52,40,.78)";
+        ctx.fillText(ft+" ft",64,a.sy-3);
+        lastLabelY=a.sy;
+      }
+    }
+  }
+  function basket(){
+    const g=project(basketX,0,0);
+    if(!g) return;
+    const K=mode==="putt"?1:1.35;        // mild visual upscale so it reads far away
+    const s=g.s*K, sy=z=>g.sy-z*s;
+    // shadow
+    ctx.fillStyle="rgba(20,40,30,.22)";
+    ctx.beginPath(); ctx.ellipse(g.sx,g.sy,0.5*s,0.13*s,0,0,7); ctx.fill();
+    // pole
+    ctx.strokeStyle="#3f4f47"; ctx.lineWidth=Math.max(1.4,0.05*s);
+    ctx.beginPath(); ctx.moveTo(g.sx,g.sy); ctx.lineTo(g.sx,sy(1.42)); ctx.stroke();
+    // chains from top band down into the tray
+    ctx.strokeStyle="#dfe5e0"; ctx.lineWidth=1;
+    for(let k=-3;k<=3;k++){
+      const t=k/3;
+      ctx.beginPath();
+      ctx.moveTo(g.sx+t*0.14*s,sy(1.28));
+      ctx.lineTo(g.sx+t*0.30*s,sy(0.70));
+      ctx.stroke();
+    }
+    // top band
+    ctx.fillStyle="#46584f";
+    ctx.fillRect(g.sx-0.16*s,sy(1.34),0.32*s,Math.max(1.6,0.07*s));
+    // tray
+    ctx.fillStyle="#5d6f66";
+    ctx.fillRect(g.sx-0.33*s,sy(0.70),0.66*s,0.22*s);
+    ctx.strokeStyle="#31413a"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.ellipse(g.sx,sy(0.70),0.33*s,0.09*s,0,0,7); ctx.stroke();
+  }
+  function handPos(){   // matches the reachback hand in player()
+    const side=$("style").value.startsWith("R")?-1:1, off=-side*0.7;
+    const va=aim*1.7*DEG, vc=Math.cos(va), vs=Math.sin(va);
+    const x=-0.24, y=side*0.74;
+    return [x*vc-y*vs, x*vs+y*vc+off, 1.33];
+  }
+  // dotted arc from the hand: direction = aim, elevation = launch, length = speed
+  function throwVector(){
+    const [hx,hy,hz]=handPos();
+    const c=Math.cos(aim*DEG), s=Math.sin(aim*DEG);
+    const cl=Math.cos(lau*DEG), sl=Math.sin(lau*DEG);
+    const len=2+spd*0.55;
+    const droop=9.81/(2*spd*spd*cl*cl)*0.45;   // hint of arc, well short of full ballistic
+    const P=t=>project(hx+t*c*cl, hy+t*s*cl, hz+t*sl-droop*t*t);
+    const N=14;
+    ctx.save();
+    ctx.lineCap="round";
+    let a=null, b=null;
+    for(const [w,col,dash] of [[4,"rgba(255,255,255,.55)",0],[2.2,"rgba(12,94,66,.85)",1]]){
+      ctx.lineWidth=w; ctx.strokeStyle=col;
+      ctx.setLineDash(dash?[7,7]:[]);
+      ctx.beginPath();
+      let started=false;
+      for(let i=0;i<=N;i++){
+        const p=P(0.5+(len-0.5)*i/N);
+        if(!p) continue;
+        started?ctx.lineTo(p.sx,p.sy):ctx.moveTo(p.sx,p.sy);
+        started=true; a=b; b=p;
+      }
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    if(a&&b){
+      const dx=b.sx-a.sx, dy=b.sy-a.sy, m=Math.hypot(dx,dy)||1;
+      const ux=dx/m, uy=dy/m, sz=8;
+      ctx.fillStyle="rgba(12,94,66,.9)";
+      ctx.beginPath();
+      ctx.moveTo(b.sx+ux*sz,b.sy+uy*sz);
+      ctx.lineTo(b.sx-uy*sz*0.55,b.sy+ux*sz*0.55);
+      ctx.lineTo(b.sx+uy*sz*0.55,b.sy-ux*sz*0.55);
+      ctx.closePath(); ctx.fill();
+      const fmt=v=>v%1?v.toFixed(1):v.toFixed(0);
+      const txt=fmt(spd)+" m/s · "+fmt(lau)+"°";
+      ctx.font="700 12px -apple-system,sans-serif"; ctx.textAlign="center";
+      ctx.lineWidth=3; ctx.strokeStyle="rgba(255,255,255,.85)";
+      ctx.strokeText(txt,b.sx,b.sy-14);
+      ctx.fillStyle="#0c5e42";
+      ctx.fillText(txt,b.sx,b.sy-14);
+    }
+    ctx.restore();
+  }
+  function player(){
+    const line=(a,b,w,col)=>{
+      const pa=project(a[0],a[1],a[2]), pb=project(b[0],b[1],b[2]);
+      if(!pa||!pb) return;
+      ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap="round";
+      ctx.beginPath(); ctx.moveTo(pa.sx,pa.sy); ctx.lineTo(pb.sx,pb.sy); ctx.stroke();
+    };
+    const s=F/camB;                      // scale at the tee
+    const st=$("style").value;
+    const side=st.startsWith("R")?-1:1;  // throwing arm side (y<0 = thrower's right)
+    const off=-side*0.7;                 // body beside the line so the hand is on it
+    // body-local point rotated about the body axis, then offset
+    // (rotation exaggerated so the twist reads on screen)
+    const va=aim*1.7*DEG, vc=Math.cos(va), vs=Math.sin(va);
+    const R=(x,y,z)=>[x*vc-y*vs, x*vs+y*vc+off, z];
+    // legs (stance rotates half as much as the shoulders)
+    const half=va*0.5, hc=Math.cos(half), hs=Math.sin(half);
+    const legR=(x,y)=>[x*hc-y*hs, x*hs+y*hc+off];
+    for(const sd of [-1,1]){
+      const [fx,fy]=legR(0,sd*0.20);
+      line([0,sd*0.10+off,0.94],[fx,fy,0.03],0.115*s,"#26332c");
+    }
+    // torso
+    line([0,off,0.96],[0,off,1.40],0.30*s,"#14563f");
+    // shoulders (rotate with aim)
+    line(R(0,-0.25,1.40),R(0,0.25,1.40),0.12*s,"#14563f");
+    // throwing arm: shoulder, elbow, hand in reachback
+    const sh=R(0,side*0.25,1.40), el=R(-0.10,side*0.52,1.37), ha=handPos();
+    line(sh,el,0.085*s,"#26332c");
+    line(el,ha,0.075*s,"#26332c");
+    // head
+    const hp=project(0,off,1.60);
+    if(hp){ ctx.fillStyle="#26332c"; ctx.beginPath(); ctx.arc(hp.sx,hp.sy,0.12*s,0,7); ctx.fill(); }
+    // disc in hand (hidden once it is in the air)
+    if(state==="ready"){
+      const dp=project(ha[0],ha[1],ha[2]);
+      if(dp){
+        ctx.fillStyle="#e8622d"; ctx.strokeStyle="rgba(0,0,0,.25)"; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.ellipse(dp.sx,dp.sy,0.115*dp.s,0.045*dp.s,side*0.25,0,7);
+        ctx.fill(); ctx.stroke();
+      }
+    }
+  }
+  function discSprite(p,rot){
+    const rx=Math.max(3,0.105*p.s*1.8);
+    const ry=rx*Math.min(0.85,0.30+0.6*Math.abs(Math.sin(rot||0)));
+    ctx.fillStyle="#e8622d"; ctx.strokeStyle="rgba(0,0,0,.3)"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.ellipse(p.sx,p.sy,rx,ry,rot||0,0,7);
+    ctx.fill(); ctx.stroke();
+  }
+  function landedMarker(p){
+    // flat on the ground, scaled purely with depth like the flight sprite
+    const rx=Math.max(1.6,0.105*p.s*1.8);
+    ctx.fillStyle="#e8622d";
+    ctx.beginPath(); ctx.ellipse(p.sx,p.sy,rx,rx*0.3,0,0,7); ctx.fill();
+    if(rx>3){ ctx.strokeStyle="rgba(0,0,0,.25)"; ctx.lineWidth=1; ctx.stroke(); }
+  }
+  // screen bank: hyzer at release, easing toward a fade-side bank as airspeed drops
+  function bankAt(i){
+    const j=Math.max(1,Math.min(i,res.x.length-1));
+    const v=Math.hypot(res.x[j]-res.x[j-1],res.y[j]-res.y[j-1],res.z[j]-res.z[j-1])*1e3;
+    const ease=Math.min(1,Math.pow(Math.max(0,1-v/relV),1.4)*2.2);
+    return spinSign*(relHyzer+(34-relHyzer)*ease)*DEG;
+  }
+  function flightLayer(){
+    const i=Math.min(Math.round(idx),res.x.length-1);
+    const [dx,dy,dz]=wpt(i);
+    const dp=project(dx,dy,dz);
+    // fading trail: the last ~1.6 s of flight
+    ctx.lineWidth=2.5; ctx.lineCap="round";
+    const step=25, span=1600;
+    let prev=null;
+    for(let j=Math.max(0,i-span);j<=i;j+=step){
+      const [tx,ty,tz]=wpt(Math.min(j,i));
+      const p=project(tx,ty,tz);
+      if(prev&&p){
+        const a=(1-(i-j)/span)*0.6;
+        ctx.strokeStyle="rgba(255,255,255,"+a.toFixed(3)+")";
+        ctx.beginPath(); ctx.moveTo(prev.sx,prev.sy); ctx.lineTo(p.sx,p.sy); ctx.stroke();
+      }
+      prev=p;
+    }
+    // ground shadow
+    const sp=project(dx,dy,0);
+    if(sp&&state==="flying"){
+      const rx=Math.max(2.2,0.105*sp.s*1.8);
+      ctx.fillStyle="rgba(20,40,30,.28)";
+      ctx.beginPath(); ctx.ellipse(sp.sx,sp.sy,rx,rx*0.28,0,0,7); ctx.fill();
+    }
+    if(dp) discSprite(dp,bankAt(i));
+  }
+  function landedLayer(){
+    const made=makeIdx>=0;
+    const n=made?makeIdx:res.x.length-1;
+    // flight path, faint
+    ctx.strokeStyle="rgba(255,255,255,.5)"; ctx.lineWidth=1.5; ctx.lineCap="round";
+    ctx.beginPath();
+    let started=false;
+    const step=Math.max(1,Math.floor(n/240));
+    for(let j=0;j<=n;j+=step){
+      const [tx,ty,tz]=wpt(j);
+      const p=project(tx,ty,tz);
+      if(!p) continue;
+      started?ctx.lineTo(p.sx,p.sy):ctx.moveTo(p.sx,p.sy); started=true;
+    }
+    ctx.stroke();
+    const [lx,ly,lz]=wpt(n);
+    if(made){
+      const p=project(lx,ly,lz);          // frozen in the chains
+      if(p) discSprite(p,bankAt(n));
+    }else{
+      const p=project(lx,ly,0.02);
+      if(p) landedMarker(p);
+    }
+  }
+
+  function ghostLayer(){    // previous flight, faint dashed reference
+    if(!ghost) return;
+    ctx.strokeStyle="rgba(255,255,255,.38)"; ctx.lineWidth=1.3; ctx.lineCap="round";
+    ctx.setLineDash([5,5]);
+    ctx.beginPath(); let st=false;
+    for(const g of ghost){
+      const p=project(g[0],g[1],g[2]);
+      if(!p) continue;
+      st?ctx.lineTo(p.sx,p.sy):ctx.moveTo(p.sx,p.sy); st=true;
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  function holeChip(){      // small status chip, top-left, only mid-hole
+    if(throwCount<=1) return;
+    const txt="Throw "+throwCount+" · "+Math.round(basketX*FT)+" ft to basket";
+    ctx.font="700 12.5px -apple-system,sans-serif"; ctx.textAlign="left";
+    const w=ctx.measureText(txt).width+22;
+    ctx.fillStyle="rgba(255,255,255,.85)";
+    ctx.beginPath(); ctx.roundRect(12,12,w,25,8); ctx.fill();
+    ctx.strokeStyle="rgba(20,40,30,.18)"; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle="#0c5e42";
+    ctx.fillText(txt,23,29);
+  }
+
+  function draw(){
+    // putt mode: over-the-shoulder view, camera offset to the throwing-arm side
+    camY=mode==="putt"?($("style").value.startsWith("R")?-0.8:0.8):0;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+    skyGround();
+    nature();
+    fairway();
+    ghostLayer();
+    if(state==="ready"){ basket(); }
+    else{
+      const i=Math.min(Math.round(idx),res.x.length-1);
+      const layer=state==="flying"?flightLayer:landedLayer;
+      if(wpt(i)[0]>basketX){ layer(); basket(); }   // disc beyond the basket
+      else { basket(); layer(); }
+    }
+    player();
+    if(state==="ready") throwVector();   // drawn over the figure so it never hides
+    holeChip();
+  }
+
+  if(window.matchMedia&&matchMedia("(pointer: coarse)").matches){
+    document.querySelector(".hint").innerHTML=
+      "Drag the field to aim and set height. Use the <b>+</b>/<b>&minus;</b> chips for power. Tap <b>Play</b> to throw.";
+  }
+
+  /* ---- boot ---- */
+  window.FG={get state(){return{mode,state,throwCount,basketX,aim,spd,lau,makeIdx,holeStartMode,hasGhost:!!ghost};}};
+  labels(); run(); draw();
+})();
+</script>
+</body>
+</html>

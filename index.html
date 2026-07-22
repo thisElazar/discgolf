@@ -106,6 +106,7 @@
   <a href="wind_tunnel.html">Wind tunnel</a>
   <button data-s="db">PDGA database</button>
   <button data-s="sim">Flight sim</button>
+  <a href="flight_game.html">Flight game</a>
   <button data-s="docs">Docs</button>
 </nav>
 
@@ -148,6 +149,14 @@
         </div>
         <img class="shot" src="img/flight_sim.jpg" alt="Flight simulator: top and side trajectory views">
       </div>
+      <a class="card launch" href="flight_game.html">
+        <div class="ltxt">
+          <div class="big">Flight Game</div>
+          <p>Park the basket off the tee, or hit chains from your lie.</p>
+          <span class="tag">play →</span>
+        </div>
+        <img class="shot" src="img/flight_game.jpg" alt="Flight game: throw at the basket from a pseudo-3D tee view">
+      </a>
       <div class="card launch" data-go="docs">
         <div class="ltxt">
           <div class="big">Methods &amp; Sources</div>
@@ -198,7 +207,7 @@
           <input type="range" id="s_v" min="15" max="33" step="0.5" value="24"></div>
         <div class="sctrl"><label>Launch angle <span class="val" id="sv_l"></span></label>
           <input type="range" id="s_l" min="0" max="20" step="0.5" value="10"></div>
-        <div class="sctrl"><label>Hyzer <span class="val" id="sv_h"></span></label>
+        <div class="sctrl"><label>Tilt <span class="val" id="sv_h"></span></label>
           <input type="range" id="s_h" min="-25" max="25" step="1" value="0"></div>
         <div class="sctrl"><label>Nose angle <span class="val" id="sv_n"></span></label>
           <input type="range" id="s_n" min="-5" max="10" step="0.5" value="0"></div>
@@ -213,7 +222,7 @@
       <div class="note">Aerodynamic coefficients come from the CFD surrogate evaluated at the selected disc's
         geometry, anchored to Kamaruddin's wind-tunnel measurements of real discs (<code>cfd/anchors/</code>);
         the integrator adds gravity, spin, and gyroscopic precession (<code>cfd_flight.js</code>,
-        the same physics as <code>flight_sim.py</code>). Positive hyzer tilts the outer edge down at release;
+        the same physics as <code>flight_sim.py</code>). Tilt with the edge down is a hyzer release and edge up is anhyzer;
         nose angle pitches the nose up. Pin a trajectory, then change disc or throw to compare.</div>
     </div>
     <div class="two">
@@ -424,7 +433,7 @@ document.querySelectorAll("#doctabs button").forEach(b=>b.addEventListener("clic
   function labels(){
     $("sv_v").textContent=(+S.v.value).toFixed(1)+" m/s ("+(S.v.value*2.23694).toFixed(0)+" mph)";
     $("sv_l").textContent=(+S.l.value).toFixed(1)+"°";
-    $("sv_h").textContent=Math.abs(+S.h.value)+"° "+(S.h.value>0?"hyzer":S.h.value<0?"anhyzer":"flat");
+    $("sv_h").textContent=+S.h.value===0?"flat":Math.abs(+S.h.value)+"° edge "+(S.h.value>0?"down":"up");
     $("sv_n").textContent=(+S.n.value).toFixed(1)+"°";
   }
   Object.values(S).forEach(el=>el.addEventListener("input",()=>{labels();run();}));
