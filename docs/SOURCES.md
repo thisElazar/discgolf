@@ -6,7 +6,7 @@ July 2026.
 ## Directly on-point: parametric disc golf design + CFD
 
 - **Optimal design for disc golf by computational fluid dynamics and machine
-  learning** — *Structural and Multidisciplinary Optimization* (Springer, 2021).
+  learning**, *Structural and Multidisciplinary Optimization* (Springer, 2021).
   https://link.springer.com/article/10.1007/s00158-021-03107-7
   Essentially our idea, proven: a disc profile parameterized by ~19 control
   points fitted with cubic B-splines and revolved into 3D (12 design variables);
@@ -16,14 +16,14 @@ July 2026.
   domes; the two goals are contradictory (Pareto trade-off). **Read this first.**
 
 - **Disc golf trajectory modelling combining computational fluid dynamics and
-  rigid body dynamics** — *Sports Engineering* (Springer, 2022).
+  rigid body dynamics**, *Sports Engineering* (Springer, 2022).
   https://link.springer.com/article/10.1007/s12283-022-00390-5
   Couples CFD-derived aero coefficients to 6-DOF rigid-body dynamics to predict
   actual trajectories. The blueprint for our "flight simulator" tier.
 
 ## Foundational flying-disc aerodynamics (coefficient data)
 
-- **Potts, J. R. — Disc-wing Aerodynamics / Aerodynamic Performance of Flying
+- **Potts, J. R.: Disc-wing Aerodynamics / Aerodynamic Performance of Flying
   Discs** (Sheffield Hallam University).
   https://shura.shu.ac.uk/14521/1/Potts%20-%20Aerodynamic%20Performance%20of%20Flying%20Discs%20-%20(AM).pdf
   Landing page: https://shura.shu.ac.uk/14521/
@@ -31,12 +31,12 @@ July 2026.
   and pitching-moment coefficients vs angle of attack, spin effects, cavity
   effects. Primary source for measured aero coefficients.
 
-- **Potts & Crowther — Frisbee™ Aerodynamics / Aerodynamic performance of flying
+- **Potts & Crowther: Frisbee™ Aerodynamics / Aerodynamic performance of flying
   discs**, *Aircraft Engineering and Aerospace Technology* (Emerald).
   https://www.emerald.com/aeat/article/90/2/390/48679/Aerodynamic-performance-of-flying-discs
   Author manuscript (free): https://shura.shu.ac.uk/14521/
 
-- **Kamaruddin, N. M. — Dynamics and Performance of Flying Discs** (PhD thesis,
+- **Kamaruddin, N. M.: Dynamics and Performance of Flying Discs** (PhD thesis,
   University of Manchester, 2011).
   https://research.manchester.ac.uk/en/studentTheses/dynamics-and-performance-of-flying-discs
   The full data behind the 2018 paper: wind-tunnel CL/CD/CM for six commercial
@@ -47,7 +47,7 @@ July 2026.
   (`cfd/anchors/`) and to validate the 6-DOF trajectories
   (`cfd/verify_trajectory.py`) against the thesis's simulated ranges.
 
-- **Hummel, S. A. — Frisbee Flight Simulation and Throw Biomechanics** (M.S.
+- **Hummel, S. A.: Frisbee Flight Simulation and Throw Biomechanics** (M.S.
   thesis, UC Davis, 2003).
   https://morleyfielddgc.wordpress.com/wp-content/uploads/2009/04/hummelthesis.pdf
   Lab page: https://research.engineering.ucdavis.edu/biosport/sample-page/test-page-1/frisbee-flight-simulation-and-throw-biomechanics/
@@ -56,35 +56,35 @@ July 2026.
 
 ## Data sets
 
-- **PDGA certified-disc database** — export of every PDGA-approved disc with
+- **PDGA certified-disc database**: export of every PDGA-approved disc with
   certified measurements (max weight, diameter, height, rim depth, inside rim
   diameter, rim thickness, rim config, flexibility).
   https://www.pdga.com/technical-standards/equipment-certification/discs/export
   Snapshot: `data/pdga_approved_discs.csv` (2,401 rows, fetched July 2026).
-  Note: the endpoint 403s on curl's default User-Agent — pass a browser UA.
+  Note: the endpoint 403s on curl's default User-Agent; pass a browser UA.
   `scripts/build_disc_db.py` slims it into `disc_db.js` for the designer app,
   which uses it for pro-disc presets and the closest-certified-disc matcher.
 
 ## Supporting / explanatory
 
-- **The Aerodynamics and Stability of Flying Discs** — Stanford PH210 course note.
+- **The Aerodynamics and Stability of Flying Discs**, Stanford PH210 course note.
   http://large.stanford.edu/courses/2007/ph210/scodary1/
-- **Gone With the Wind: An Investigation into the Flight Dynamics of Discs** —
+- **Gone With the Wind: An Investigation into the Flight Dynamics of Discs**,
   Pozderac, junior thesis (Wooster).
   https://physics.wooster.edu/wp-content/uploads/2021/08/Junior-IS-Thesis-Web_2016_Pozderac.pdf
-- **Disc Golf and its Relation to Aerodynamics and Mechanics** — Harp (Arkansas).
+- **Disc Golf and its Relation to Aerodynamics and Mechanics**, Harp (Arkansas).
   https://bpb-us-e1.wpmucdn.com/wordpressua.uark.edu/dist/a/146/files/2025/04/DiscGolf.pdf
-- **An Aerodynamic Simulation of Disc Flight** — CSB/SJU honors thesis.
+- **An Aerodynamic Simulation of Disc Flight**, CSB/SJU honors thesis.
   https://digitalcommons.csbsju.edu/cgi/viewcontent.cgi?article=1067&context=honors_theses
-- **Disc Golf Guide: The Science of Flight** — Disc Golf United blog (advance
+- **Disc Golf Guide: The Science of Flight**, Disc Golf United blog (advance
   ratio, rim-to-plate mass ratio, center-of-pressure vs center-of-mass).
   https://blog.discgolfunited.com/the-science-of-flight/
 
 ## Regulatory
 
-- **PDGA Technical Standards — Guidelines** (the disc legality rules).
+- **PDGA Technical Standards: Guidelines** (the disc legality rules).
   https://www.pdga.com/technical-standards/guidelines
-- **PDGA Equipment Certification — Discs** (overview of approval process).
+- **PDGA Equipment Certification: Discs** (overview of approval process).
   https://www.pdga.com/technical-standards/equipment-certification/discs/guide
-- **Why & How Discs Get PDGA Approved** — UDisc blog (readable overview).
+- **Why & How Discs Get PDGA Approved**, UDisc blog (readable overview).
   https://udisc.com/blog/post/why-how-discs-get-pdga-approved

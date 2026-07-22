@@ -87,7 +87,7 @@
       <span class="stat">▶ <b>net aero force</b> · <span style="color:#f59e0b">●</span> centre of pressure</span>
     </div>
     <div id="colorkey" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
-    <div class="note">A 2-D lattice-Boltzmann (D2Q9 BGK) simulation of the disc's center cross-section,
+    <div class="note">A 2-D lattice-Boltzmann (D2Q9 BGK) simulation of the disc's centre cross-section,
       computed in the browser. Stagnation, separation, and vortex shedding behave qualitatively as they
       do in flight, but the section is 2-D and runs near Re 10³ where flight is near 10⁵, so treat the
       picture as illustrative. The flight numbers used elsewhere on this site come from the 3-D
@@ -136,7 +136,7 @@
       (<code>cfd_surrogate.js</code>) evaluated at the current disc's parameters; the same surrogate
       drives the designer's flight path. The dropdown selects any sweep geometry's raw curve.
       The surrogate is anchored to Kamaruddin's wind-tunnel measurements of three real discs
-      (lift ×0.85, drag ×0.98 — <code>cfd/anchors/</code>), so its lift sits a notch below the raw
+      (lift ×0.85, drag ×0.98; <code>cfd/anchors/</code>), so its lift sits a notch below the raw
       CFD curves, which carry the coarse mesh's known high bias.</div>
   </div>
 </div>
@@ -400,9 +400,11 @@ function updateReadouts(){
   document.getElementById("cd2").textContent=(Fx/q).toFixed(2);
   document.getElementById("ld2").textContent=(Fz/Math.max(Fx,1e-9)).toFixed(1);
   if(Math.abs(Fz)>q*0.1){
-    const xc=TQe/Fz/chordL;
+    const xc=clamp(TQe/Fz/chordL,-0.55,0.55);
     document.getElementById("pitch").textContent=
-      (xc<0?"nose-up":"nose-down")+" (CoP "+(100*Math.abs(xc)).toFixed(0)+"% "+(xc<0?"ahead of":"behind")+" centre)";
+      (TQe<0?"nose-up":"nose-down")+" (CoP "+(100*Math.abs(xc)).toFixed(0)+"% "+(xc<0?"ahead of":"behind")+" centre)";
+  }else{
+    document.getElementById("pitch").textContent="near-zero lift, CoP undefined";
   }
 }
 function updateColorKey(){
@@ -423,7 +425,7 @@ function frame(){
   if(!paused){
     for(let s=0;s<stepsPF;s++)step();
     stepCount+=stepsPF;totalSteps+=stepsPF;
-    if(checkPhase===0&&totalSteps>=800){checkPhase=1;selfCheck();}
+    if(checkPhase===0&&totalSteps>=800){checkPhase=1;if(LBMTEST)selfCheck();}
     if(document.getElementById("parts").checked)moveParticles();
     render();
   }
@@ -441,8 +443,8 @@ function syncLabels(){
   document.getElementById("v_alpha").textContent=(+alphaEl.value).toFixed(1)+"°";
   document.getElementById("v_speed").textContent=(+speedEl.value).toFixed(3)+" lattice u";
 }
-alphaEl.addEventListener("input",()=>{alphaDeg=+alphaEl.value;syncLabels();rasterize();drawCharts();});
-speedEl.addEventListener("input",()=>{u0=+speedEl.value;syncLabels();rasterize();});
+alphaEl.addEventListener("input",()=>{alphaDeg=+alphaEl.value;syncLabels();rasterize();drawCharts();if(paused)render();});
+speedEl.addEventListener("input",()=>{u0=+speedEl.value;syncLabels();rasterize();if(paused)render();});
 document.getElementById("qual").addEventListener("change",e=>alloc(+e.target.value));
 document.getElementById("pause").addEventListener("click",e=>{paused=!paused;e.target.textContent=paused?"Run":"Pause";});
 document.getElementById("reset").addEventListener("click",initFlow);
@@ -561,7 +563,8 @@ function drawCharts(){
 /* ---- boot ---- */
 syncLabels();
 updateColorKey();
-document.getElementById("viz").addEventListener("change",updateColorKey);
+document.getElementById("viz").addEventListener("change",()=>{updateColorKey();if(paused)render();});
+document.getElementById("parts").addEventListener("change",()=>{if(paused)render();});
 const tag0=document.getElementById("discname");
 if(discName){tag0.style.display="";tag0.textContent=discName;}
 updateEditLink();

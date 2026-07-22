@@ -5,7 +5,7 @@ is the honest ledger of which parts of the pipeline are validated science,
 which are calibrated to a plausible operating point, and which are placeholders
 awaiting real data. Keep it current as the project evolves.
 
-## Tier 1 — GROUNDED (published / physically exact)
+## Tier 1: GROUNDED (published / physically exact)
 
 | Component | Basis |
 |---|---|
@@ -20,27 +20,27 @@ awaiting real data. Keep it current as the project evolves.
 
 The flight simulator's *behavior* is validated qualitatively: it produces
 lift-supported glide, realistic ballistic altitude arcs, correct hyzer/anhyzer
-response, gyroscopic precession, and stability-driven drift — none of it
+response, gyroscopic precession, and stability-driven drift. None of it is
 hand-scripted; it falls out of the equations.
 
-## Tier 2 — CALIBRATED (plausible, first-order, needs CFD to confirm)
+## Tier 2: CALIBRATED (plausible, first-order, needs CFD to confirm)
 
 | Component | Status |
 |---|---|
-| Lift/drag coefficient **magnitudes** (CL0, CD0) for the disc-golf regime | **Superseded July 2026:** the CFD-surrogate path is now anchored to Kamaruddin's wind-tunnel measurements (kCL = 0.85, kCD = 0.98 — see roadmap 3a). The hand-calibrated values remain only in the Python fallback `aero_from_geometry()`. |
-| Geometry → coefficient scaling (rim width → drag, dome → lift, parting-line/dome/rim → stability) | **Superseded July 2026 by the CFD surrogate** (`cfd_surrogate.js`; see the roadmap below) — geometry→coefficients is now CFD-derived rather than hand-tuned slopes. The old `aero_from_geometry()` estimates remain only as the Python fallback. |
+| Lift/drag coefficient **magnitudes** (CL0, CD0) for the disc-golf regime | **Superseded July 2026:** the CFD-surrogate path is now anchored to Kamaruddin's wind-tunnel measurements (kCL = 0.85, kCD = 0.98; see roadmap 3a). The hand-calibrated values remain only in the Python fallback `aero_from_geometry()`. |
+| Geometry → coefficient scaling (rim width → drag, dome → lift, parting-line/dome/rim → stability) | **Superseded July 2026 by the CFD surrogate** (`cfd_surrogate.js`; see the roadmap below): geometry→coefficients is now CFD-derived rather than hand-tuned slopes. The old `aero_from_geometry()` estimates remain only as the Python fallback. |
 | Low-speed fade term (`LOWSPEED_FADE_*`) | Stands in for advance-ratio-dependent moments that a constant-coefficient model can't capture. Real, but its magnitude is tuned, not measured. |
 | Throw speeds used in the preset demo (14–27 m/s) | Intermediate-amateur arm speeds → intermediate distances. Pro speeds (30+ m/s) + more spin go much farther. |
 | Pro-disc preset **derivation** of unpublished dimensions | PDGA publishes diameter/height/rim depth/rim width but not plate thickness, parting-line height, or nose radius. The app estimates those per class (`CLASS_EST`), estimates parting line from the disc's printed stability, and fits plastic density so model mass lands ~0.5 g under the certified max weight. Certified numbers are reproduced exactly; the estimated ones are labeled as such in the UI. |
-| Manufacturer flight numbers shown on presets | Printed ratings (marketing scale), not measurements — shown because athletes navigate by them. |
-| The app's live flight estimate (`flightEstimate()` / `flight_estimate()`) | **Now CFD-driven (July 2026, roadmap 4):** the numbers come from the surrogate's aero coefficients (`scripts/fit_cfd_flight_numbers.py` → `cfd_flight_fit.js`). The older geometry ridge fit (`scripts/fit_flight_numbers.py`, LOO RMSE: speed 0.81, glide 0.74, turn 0.46, fade 0.45) remains as fallback. Shared caveats: n=43; targets are a marketing scale; feature sets chosen partly by LOO on the same data; the preset parting lines were themselves derived from printed stability (circularity — now entering through the geometry the surrogate is evaluated at, rather than as a direct feature). Trust it near real-disc geometry; it extrapolates poorly. |
+| Manufacturer flight numbers shown on presets | Printed ratings (marketing scale), not measurements, shown because athletes navigate by them. |
+| The app's live flight estimate (`flightEstimate()` / `flight_estimate()`) | **Now CFD-driven (July 2026, roadmap 4):** the numbers come from the surrogate's aero coefficients (`scripts/fit_cfd_flight_numbers.py` → `cfd_flight_fit.js`). The older geometry ridge fit (`scripts/fit_flight_numbers.py`, LOO RMSE: speed 0.81, glide 0.74, turn 0.46, fade 0.45) remains as fallback. Shared caveats: n=43; targets are a marketing scale; feature sets chosen partly by LOO on the same data; the preset parting lines were themselves derived from printed stability (circularity, which now enters through the geometry the surrogate is evaluated at rather than as a direct feature). Trust it near real-disc geometry; it extrapolates poorly. |
 
-## Tier 3 — HEURISTIC / PLACEHOLDER (replace ASAP)
+## Tier 3: HEURISTIC / PLACEHOLDER (replace ASAP)
 
 | Component | Status |
 |---|---|
 | "Derived flight numbers" from simulated trajectories | Reasonable descriptors, but they inherit the Tier-2 calibration uncertainty. |
-| Flight estimate outside the fitted envelope (rim width ≳ certified range, exotic domes/parting lines) | The Tier-2 linear fit is only anchored by 43 real discs; beyond them it's extrapolation — treat as placeholder. |
+| Flight estimate outside the fitted envelope (rim width ≳ certified range, exotic domes/parting lines) | The Tier-2 linear fit is only anchored by 43 real discs; beyond them it's extrapolation; treat it as placeholder. |
 
 ## The path to remove the caveats
 
@@ -50,20 +50,20 @@ hand-scripted; it falls out of the equations.
    Potts / Kamaruddin wind-tunnel data on the Aviar putter: **trim angle (7.8°
    vs 7.5°), aerodynamic-centre position (xac/d 0.055 vs 0.05), and pitching-
    moment gradient all match.** Caveat: absolute CL/CD magnitudes run ~15–20%
-   high — the coarse wall-function mesh (y+≈28) trades magnitude accuracy for
+   high: the coarse wall-function mesh (y+≈28) trades magnitude accuracy for
    throughput. (A finer mesh dropped y+ into the invalid buffer layer and made
    things worse; the coarse mesh is the correct wall-function regime.)
 2. **Surrogate.** ✅ DONE. A standardized degree-2 polynomial maps the 6 shape
    parameters → the 7 static aero coefficients (`cfd/bigsweep/`, exported to
    `cfd_surrogate.js`, ~2.6 KB). 8-fold CV R²: CMa 0.90, CM0 0.89, CLa 0.84,
-   CL0 0.80, CD0 0.72, α0 0.47, CDa 0.36 — moment/lift terms strong, drag-bucket
+   CL0 0.80, CD0 0.72, α0 0.47, CDa 0.36; moment/lift terms strong, drag-bucket
    terms noisy (coarse-mesh force scatter). The designer app now computes a
    **real CFD-surrogate 6-DOF flight path** from it: `cfd_flight.js` is a JS
    port of `flight_sim.py` verified to match the Python integrator to 5 decimals
    on identical coefficients. The path is drawn in blue ("CFD physics") beside
    the manufacturer rating.
 3. **Re-validate & anchor** (July 2026):
-   (b) ✅ **Trajectory validation.** Kamaruddin's PhD thesis (Manchester 2011 —
+   (b) ✅ **Trajectory validation.** Kamaruddin's PhD thesis (Manchester 2011,
    the full data behind the 2018 paper) publishes 6-DOF simulated flights of
    the Aviar/Roc/Wraith driven by her measured wind-tunnel coefficients:
    ranges 49 / 54 / 63 m at a fixed launch (20 m/s, pitch 15°, AdvR 0.5,
@@ -71,13 +71,13 @@ hand-scripted; it falls out of the equations.
    (`cfd/verify_trajectory.py`, coefficients in
    `data/kamaruddin_wind_tunnel.json`) isolates the trajectory model from our
    CFD. Result: with model assumptions matched to hers (no aero damping
-   moments, constant spin — terms her sim omits), our ranges are **49.6 / 52.6
+   moments, constant spin; the terms her sim omits), our ranges are **49.6 / 52.6
    / 54.2 m vs her 49 / 54 / 63 m** (putter +1%, mid −3%, driver −14%), with
    matching apex heights, lateral scale, and the driver's S-shaped lateral
    reversal. The driver gap traces to her yaw-rate ≃ spin-rate simplification
    (its effect grows with flight length) plus the figure-read CD curvature
    (±0.02 → ±2 m). With our full physics (Hummel damping + spin decay) all
-   three fly 12–15% shorter than her idealized sim — the same direction the
+   three fly 12–15% shorter than her idealized sim, the same direction the
    2022 Sports Engineering study reports for its own model vs real throws.
    Verdict: the 6-DOF integrator is sound; results live in
    `cfd/trajectory_validation.json`.
@@ -94,10 +94,10 @@ hand-scripted; it falls out of the equations.
    trim 4.0° vs 4°; trim matches on all three discs. The exported surrogate
    (`cfd_surrogate.js`) now ships with these factors applied to the CL and CD
    targets (`bias_correction` field; α₀ is scale-invariant), so every
-   downstream consumer — designer flight path, wind-tunnel charts, flight
-   numbers — sits on the wind-tunnel level. Full comparison in
+   downstream consumer (designer flight path, wind-tunnel charts, flight
+   numbers) sits on the wind-tunnel level. Full comparison in
    `cfd/anchors/anchor_bias.json`.
-   (c) ⏳ **Sweep expansion 96 → 300 geometries** — generation + meshing +
+   (c) ⏳ **Sweep expansion 96 → 300 geometries.** Generation + meshing +
    1,428 additional solves running on the cluster (`cfd/bigsweep/`, ids
    geom_096–299, fresh LHS seed). When it finishes:
    `bash cfd/bigsweep/refresh_after_expansion.sh` on the cluster, then the
@@ -124,5 +124,5 @@ flights, and the flight-numbers panel runs on surrogate aerodynamics. Remaining
 known gaps: the trajectory model is validated against a published *simulation*
 driven by measured coefficients, not against instrumented field throws; the
 drag-bucket surrogate terms stay noisy until the 300-geometry expansion lands;
-spin-dependent (advance-ratio) effects are still parameterized, not computed —
+spin-dependent (advance-ratio) effects are still parameterized, not computed;
 spinning CFD (MRF) is the next tier.

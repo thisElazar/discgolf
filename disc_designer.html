@@ -25,12 +25,17 @@
   .card h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
   .cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:10px 0 5px}
   .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
-  .presets button{flex:1 1 45%;padding:8px 8px;border:1px solid var(--line);background:#fff;color:var(--ink);
+  .presets button,.presets .pbtn{flex:1 1 45%;padding:8px 8px;border:1px solid var(--line);background:#fff;color:var(--ink);
         border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;transition:.15s;text-align:left}
-  .presets button small{display:block;font-weight:500;font-size:10.5px;color:var(--muted)}
-  .presets button:hover{border-color:var(--accent);color:var(--accent-d)}
-  .presets button.active{background:var(--accent);border-color:var(--accent);color:#fff}
-  .presets button.active small{color:#d8efe5}
+  .presets button small,.presets .pbtn small{display:block;font-weight:500;font-size:10.5px;color:var(--muted)}
+  .presets button:hover,.presets .pbtn:hover{border-color:var(--accent);color:var(--accent-d)}
+  .presets button.active,.presets .pbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .presets button.active small,.presets .pbtn.active small{color:#d8efe5}
+  .pbtn{position:relative}
+  .pbtn a.ext{position:absolute;top:6px;right:7px;font-size:9.5px;font-weight:700;color:var(--muted);
+        text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:1px 5px;background:#fff}
+  .pbtn a.ext:hover{color:var(--accent-d);border-color:var(--accent)}
+  .pbtn.active a.ext{background:transparent;color:#d8efe5;border-color:#7fd4b2}
   .presets.arch button{flex:1 1 auto;text-align:center}
   #prodiscs{max-height:380px;overflow-y:auto;padding-right:6px;margin-right:-6px}
   .slider{margin:13px 0}
@@ -244,6 +249,14 @@ PARAMS.forEach(def=>{
 });
 
 const proEl=document.getElementById("prodiscs");
+// PDGA equipment-certification search, manufacturer ids from the site's filter form
+const PDGA_MFR={"Innova":270681,"Discraft":270546,"Discmania":270536,"Dynamic Discs":270576,
+  "Gateway":270651,"Westside":270936,"Axiom":270406,"Latitude 64":270706,"MVP":270751};
+function pdgaLink(d){
+  const base="https://www.pdga.com/technical-standards/equipment-certification/discs?title="+
+    encodeURIComponent(d.name);
+  return PDGA_MFR[d.mfr]?base+"&manufacturer="+PDGA_MFR[d.mfr]:base;
+}
 if(!PRO_DISCS.length)proEl.innerHTML='<div class="hint" style="font-size:12px;color:var(--muted)">pro_discs.js not found; run <code>scripts/build_disc_db.py</code></div>';
 ["Putter","Midrange","Fairway","Distance"].forEach(cls=>{
   const lbl=document.createElement("div");lbl.className="cat";lbl.textContent=cls+"s";
@@ -251,15 +264,22 @@ if(!PRO_DISCS.length)proEl.innerHTML='<div class="hint" style="font-size:12px;co
   const row=document.createElement("div");row.className="presets";
   PRO_DISCS.forEach((d,i)=>{
     if(d.cls!==cls)return;
-    const b=document.createElement("button");b.dataset.pro=i;
+    const b=document.createElement("div");b.className="pbtn";b.dataset.pro=i;
+    b.setAttribute("role","button");b.tabIndex=0;
     b.innerHTML=`${d.name}<small>${d.mfr} · ${d.fl.join(" / ")}</small>`;
+    const a=document.createElement("a");a.className="ext";a.href=pdgaLink(d);
+    a.target="_blank";a.rel="noopener";a.title=`${d.name} in the PDGA certification database`;
+    a.textContent="PDGA ↗";
+    a.addEventListener("click",e=>e.stopPropagation());
+    b.appendChild(a);
     b.addEventListener("click",()=>{P=paramsFromCertified(d);activePro=i;importedDisc=null;
       setActivePreset(null);setActivePro(i);syncSliders();render();});
+    b.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();b.click();}});
     row.appendChild(b);
   });
   proEl.appendChild(row);
 });
-function setActivePro(i){proEl.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.pro==i));}
+function setActivePro(i){proEl.querySelectorAll("[data-pro]").forEach(b=>b.classList.toggle("active",b.dataset.pro==i));}
 
 const presetsEl=document.getElementById("presets");
 Object.keys(PRESETS).forEach(name=>{
@@ -544,8 +564,8 @@ if(typeof CFD_FLIGHT_FIT!=="undefined"&&typeof CFDFlight!=="undefined"&&typeof C
   const rm=k=>CFD_FLIGHT_FIT[k].loo_rmse.toFixed(1);
   document.getElementById("estlbl").textContent=`(from CFD aero coefficients, calibrated to ${n} pro discs)`;
   document.getElementById("estnote").innerHTML=
-    `These numbers come from the CFD surrogate's aerodynamic coefficients for this shape — drag floor, `+
-    `lift, and pitching moment — mapped to the rating scale with a linear model calibrated on the ${n} `+
+    `These numbers come from the CFD surrogate's aerodynamic coefficients for this shape (drag floor, `+
+    `lift, and pitching moment), mapped to the rating scale with a linear model calibrated on the ${n} `+
     `pro-disc presets (leave-one-out RMSE ${rm("speed")} speed · ${rm("glide")} glide · ${rm("turn")} turn `+
     `· ${rm("fade")} fade; <code>data/cfd_flight_fit.json</code>). Manufacturer numbers are the printed ratings.`;
 }else if(typeof FLIGHT_FIT==="undefined"){

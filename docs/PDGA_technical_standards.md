@@ -5,7 +5,7 @@ for sanctioned play. They define the "box" our parametric model must stay inside
 Every numeric limit below is enforced live in `disc_model.py`, the Grasshopper
 component, and the slider app.
 
-Source: PDGA Technical Standards — Guidelines
+Source: PDGA Technical Standards, Guidelines
 (https://www.pdga.com/technical-standards/guidelines). Verify against the current
 published standard before submitting a disc for certification; the PDGA updates
 these periodically.
@@ -29,7 +29,7 @@ these periodically.
 | Weight per cm of diameter | **≤ 8.3 g per cm** of outside diameter |
 | Absolute maximum weight | **≤ 200 g** |
 
-For a 21.2 cm disc the per-cm rule caps weight at **~176 g** — which is exactly
+For a 21.2 cm disc the per-cm rule caps weight at **~176 g**, which is exactly
 why "max weight" discs sit around 175 g.
 
 ## Physical / material tests
