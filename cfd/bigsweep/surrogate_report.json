@@ -1,0 +1,50 @@
+{
+  "features": [
+    "rim_width_mm",
+    "rim_shoulder_mm",
+    "parting_line_mm",
+    "dome_mm",
+    "plate_thick_mm",
+    "nose_radius_mm"
+  ],
+  "targets": [
+    "CL0",
+    "CLa",
+    "CD0",
+    "CDa",
+    "alpha0",
+    "CM0",
+    "CMa"
+  ],
+  "cv": {
+    "CL0": {
+      "cv_r2": 0.83,
+      "cv_rmse": 0.01069
+    },
+    "CLa": {
+      "cv_r2": 0.857,
+      "cv_rmse": 0.06396
+    },
+    "CD0": {
+      "cv_r2": 0.818,
+      "cv_rmse": 0.00222
+    },
+    "CDa": {
+      "cv_r2": 0.738,
+      "cv_rmse": 0.19321
+    },
+    "alpha0": {
+      "cv_r2": 0.68,
+      "cv_rmse": 0.01104
+    },
+    "CM0": {
+      "cv_r2": 0.888,
+      "cv_rmse": 0.00269
+    },
+    "CMa": {
+      "cv_r2": 0.82,
+      "cv_rmse": 0.01937
+    }
+  },
+  "n_geometries": 300
+}

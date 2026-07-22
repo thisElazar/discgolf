@@ -53,11 +53,12 @@ hand-scripted; it falls out of the equations.
    high: the coarse wall-function mesh (y+≈28) trades magnitude accuracy for
    throughput. (A finer mesh dropped y+ into the invalid buffer layer and made
    things worse; the coarse mesh is the correct wall-function regime.)
-2. **Surrogate.** ✅ DONE. A standardized degree-2 polynomial maps the 6 shape
-   parameters → the 7 static aero coefficients (`cfd/bigsweep/`, exported to
-   `cfd_surrogate.js`, ~2.6 KB). 8-fold CV R²: CMa 0.90, CM0 0.89, CLa 0.84,
-   CL0 0.80, CD0 0.72, α0 0.47, CDa 0.36; moment/lift terms strong, drag-bucket
-   terms noisy (coarse-mesh force scatter). The designer app now computes a
+2. **Surrogate.** ✅ DONE, refit on the 300-geometry sweep (July 2026). A
+   standardized degree-2 polynomial maps the 6 shape parameters → the 7 static
+   aero coefficients (`cfd/bigsweep/`, exported to `cfd_surrogate.js`, ~2.8 KB).
+   8-fold CV R²: CM0 0.92, CLa 0.88, CL0 0.87, CMa 0.86, CD0 0.81, CDa 0.76,
+   α0 0.67. The 96-geometry fit's weak drag-bucket terms (CDa 0.36, α0 0.47)
+   were the expansion's main win. The designer app now computes a
    **real CFD-surrogate 6-DOF flight path** from it: `cfd_flight.js` is a JS
    port of `flight_sim.py` verified to match the Python integrator to 5 decimals
    on identical coefficients. The path is drawn in blue ("CFD physics") beside
@@ -97,24 +98,25 @@ hand-scripted; it falls out of the equations.
    downstream consumer (designer flight path, wind-tunnel charts, flight
    numbers) sits on the wind-tunnel level. Full comparison in
    `cfd/anchors/anchor_bias.json`.
-   (c) ⏳ **Sweep expansion 96 → 300 geometries.** Generation + meshing +
-   1,428 additional solves running on the cluster (`cfd/bigsweep/`, ids
-   geom_096–299, fresh LHS seed). When it finishes:
-   `bash cfd/bigsweep/refresh_after_expansion.sh` on the cluster, then the
-   local re-export steps in that script's header. Expected to mainly lift the
-   weak drag-bucket terms (CDa CV R² 0.36, α₀ 0.47).
+   (c) ✅ **Sweep expansion 96 → 300 geometries** (July 2026). 2,086 converged
+   solves across all 300 geometries (ids geom_096–299 from a fresh LHS seed;
+   11 geometries have fewer than 7 angles after quality filtering). It lifted
+   the weak drag-bucket terms as hoped: CDa CV R² 0.36 → 0.76, α₀ 0.47 → 0.67,
+   CD0 0.72 → 0.81, with the moment/lift terms holding or improving.
 4. **CFD flight numbers.** ✅ DONE (July 2026). The app's speed/glide/turn/
    fade panel no longer uses the Tier-2 geometry ridge fit: `flightEstimate()`
    now computes the four numbers from the **surrogate's aerodynamic
    coefficients** (drag floor, lift, pitching moment at cruise and late-flight
    α, trim angle) via small ridge models calibrated on the same 43 pro discs
    (`scripts/fit_cfd_flight_numbers.py` → `cfd_flight_fit.js`,
-   `data/cfd_flight_fit.json`). LOO RMSE: speed 0.95, glide 0.86, turn 0.66,
-   fade 0.67 (constant-predictor baselines: 3.7 / 1.3 / 0.9 / 1.0). Verified
-   JS ≡ Python on the anchor discs (Aviar rated 2/3/0/1 → 1/2.9/−0.3/0.8;
-   Wraith rated 11/5/−1/3 → 12.5/5.3/−0.9/1.9). The Tier-2 fit remains as
-   fallback when the CFD files are absent. Same caveats as before: ratings
-   are a marketing scale; feature sets LOO-selected on the same data.
+   `data/cfd_flight_fit.json`). On the 300-geometry surrogate, LOO RMSE:
+   speed 1.98, glide 0.94, turn 0.68, fade 0.69 (constant-predictor baselines:
+   3.7 / 1.3 / 0.9 / 1.0). Mid-range discs land close (Buzzz rated 5/4/−1/1 →
+   4.8/4.3/−0.8/1.2; Wraith rated 11/5/−1/3 → 10.7/5.2/−1.1/2.7); the speed
+   error concentrates in max-speed wide-rim drivers, which the model
+   under-rates (Katana rated 13 → 8.3). The Tier-2 fit remains as fallback
+   when the CFD files are absent. Same caveats as before: ratings are a
+   marketing scale; feature sets LOO-selected on the same data.
 
 **Status (baseline complete, July 2026):** the full chain geometry → CFD
 coefficients → wind-tunnel-anchored magnitudes → 6-DOF trajectory → flight
@@ -123,6 +125,6 @@ Kamaruddin's measurements, the integrator is validated against her published
 flights, and the flight-numbers panel runs on surrogate aerodynamics. Remaining
 known gaps: the trajectory model is validated against a published *simulation*
 driven by measured coefficients, not against instrumented field throws; the
-drag-bucket surrogate terms stay noisy until the 300-geometry expansion lands;
+flight-numbers mapping under-rates max-speed wide-rim drivers;
 spin-dependent (advance-ratio) effects are still parameterized, not computed;
 spinning CFD (MRF) is the next tier.
