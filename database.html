@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDGA Certified-Disc Database</title>
+<link rel="stylesheet" href="site.css">
+<style>
+  .dbbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .dbbar input[type=search]{flex:1 1 260px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;
+    font:inherit;font-size:14px;background:#fff}
+  .dbbar select{padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:13.5px;background:#fff}
+  .dbbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  table.db{width:100%;border-collapse:collapse;font-size:13px}
+  table.db th{position:sticky;top:0;background:#f7faf8;text-align:right;padding:8px 8px;font-size:11px;
+    text-transform:uppercase;letter-spacing:.5px;color:var(--muted);cursor:pointer;user-select:none;
+    border-bottom:2px solid var(--line);white-space:nowrap}
+  table.db th:first-child,table.db th:nth-child(2){text-align:left}
+  table.db th.sorted{color:var(--accent-d)}
+  table.db td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+  table.db td:first-child,table.db td:nth-child(2){text-align:left}
+  table.db td:nth-child(2){font-weight:700}
+  .dbscroll{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .loadbtn{margin:12px auto;display:block;padding:9px 22px;border:1px solid var(--line);background:#fff;
+    border-radius:9px;font:inherit;font-weight:700;font-size:13px;color:var(--accent-d);cursor:pointer}
+  .loadbtn:hover{border-color:var(--accent)}
+  .note code{background:#f0f5f2;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>PDGA Certified-Disc Database</h1>
+  <p>Every PDGA-approved disc's official measurements. Click a row to open it in the designer as a starting shape.</p>
+</header>
+<nav>
+  <a href="index.html">Lab home</a>
+  <a href="disc_designer.html">Disc designer</a>
+  <a href="wind_tunnel.html">Wind tunnel</a>
+  <a href="database.html" class="active">PDGA database</a>
+  <a href="flight_sim.html">Flight sim</a>
+  <a href="flight_game.html">Flight game</a>
+  <a href="docs.html">Docs</a>
+</nav>
+
+<div class="wrap">
+  <div class="card">
+    <h2>PDGA certified-disc database</h2>
+    <div class="dbbar">
+      <input type="search" id="q" placeholder="Search disc or manufacturer… (e.g. Destroyer, Discraft)">
+      <select id="rimclass">
+        <option value="">All rim widths</option>
+        <option value="putter">Putter-ish (rim &lt; 1.3 cm)</option>
+        <option value="mid">Midrange-ish (1.3–1.6 cm)</option>
+        <option value="fairway">Fairway-ish (1.6–2.1 cm)</option>
+        <option value="distance">Distance-ish (≥ 2.1 cm)</option>
+      </select>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="dbscroll">
+      <table class="db">
+        <thead><tr id="dbhead"></tr></thead>
+        <tbody id="dbbody"></tbody>
+      </table>
+    </div>
+    <button class="loadbtn" id="more" style="display:none">Show more</button>
+    <div class="note">Official measurements from the PDGA certified-disc database (snapshot July 2026,
+      <code>data/pdga_approved_discs.csv</code>). Regenerate with <code>scripts/build_disc_db.py</code>.
+      Click a column to sort; click a row to open it in the designer as a starting shape.</div>
+  </div>
+</div>
+
+<script src="disc_db.js"></script>
+<script>
+const DB=(typeof DISC_DB!=="undefined")?DISC_DB:[];
+const COLS=[["Manufacturer",0],["Disc",1],["⌀ (cm)",2],["Height (cm)",3],["Rim depth (cm)",4],
+            ["Rim width (cm)",5],["Inner ⌀ (cm)",6],["Max wt (g)",7],["Approved",8]];
+let sortCol=8,sortDir=-1,shown=100;
+const headEl=document.getElementById("dbhead");
+COLS.forEach(([label,idx])=>{
+  const th=document.createElement("th");th.textContent=label;
+  th.addEventListener("click",()=>{if(sortCol===idx)sortDir*=-1;else{sortCol=idx;sortDir=idx<2?1:-1;}shown=100;renderDB();});
+  headEl.appendChild(th);
+});
+const q=document.getElementById("q"),rimSel=document.getElementById("rimclass");
+q.addEventListener("input",()=>{shown=100;renderDB();});
+rimSel.addEventListener("change",()=>{shown=100;renderDB();});
+document.getElementById("more").addEventListener("click",()=>{shown+=300;renderDB();});
+const RIM_BANDS={putter:[0,13],mid:[13,16],fairway:[16,21],distance:[21,99]};
+function renderDB(){
+  const needle=q.value.trim().toLowerCase();
+  const band=RIM_BANDS[rimSel.value];
+  let rows=DB.filter(d=>{
+    if(needle&&!(d[0].toLowerCase().includes(needle)||d[1].toLowerCase().includes(needle)))return false;
+    if(band&&!(d[5]>=band[0]&&d[5]<band[1]))return false;
+    return true;
+  });
+  rows.sort((a,b)=>{const x=a[sortCol],y=b[sortCol];
+    return (typeof x==="string"?x.localeCompare(y):x-y)*sortDir;});
+  document.getElementById("count").textContent=rows.length.toLocaleString()+" discs";
+  [...headEl.children].forEach((th,i)=>th.classList.toggle("sorted",COLS[i][1]===sortCol));
+  document.getElementById("dbbody").innerHTML=rows.slice(0,shown).map(d=>
+    `<tr style="cursor:pointer" title="open in designer" onclick="openInDesigner(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+     <td>${d[0]}</td><td>${d[1]}</td><td>${(d[2]/10).toFixed(1)}</td><td>${(d[3]/10).toFixed(1)}</td>
+     <td>${(d[4]/10).toFixed(1)}</td><td>${(d[5]/10).toFixed(1)}</td><td>${(d[6]/10).toFixed(1)}</td>
+     <td>${d[7].toFixed(1)}</td><td>${d[8]}</td></tr>`).join("");
+  document.getElementById("more").style.display=rows.length>shown?"block":"none";
+}
+function openInDesigner(d){
+  // hand the certified specs to the designer via the URL; it derives a starting shape
+  const p=new URLSearchParams({mfr:d[0],name:d[1],dia:d[2],h:d[3],rd:d[4],rw:d[5],wt:d[7]});
+  location.href="disc_designer.html#disc?"+p.toString();
+}
+if(DB.length)renderDB();
+else document.getElementById("dbbody").innerHTML='<tr><td colspan="9">disc_db.js not found; run <code>scripts/build_disc_db.py</code></td></tr>';
+</script>
+</body>
+</html>

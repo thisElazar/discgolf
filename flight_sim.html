@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flight Simulator</title>
+<link rel="stylesheet" href="site.css">
+<style>
+  .simrow{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px}
+  .sctrl{flex:1 1 140px;min-width:130px}
+  .sctrl label{display:block;font-size:12px;font-weight:700;margin-bottom:2px}
+  .sctrl .val{color:var(--accent-d);font-variant-numeric:tabular-nums}
+  .sctrl select{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:9px;
+    font:inherit;font-size:13px;background:#fff}
+  .simbtn{padding:7px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    font:inherit;font-size:12.5px;font-weight:700;color:var(--accent-d);cursor:pointer}
+  .simbtn:hover{border-color:var(--accent)}
+  svg.simview{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#fff}
+  img.plot{max-width:100%;border:1px solid var(--line);border-radius:10px;display:block}
+  code{background:#f0f5f2;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Flight Simulator</h1>
+  <p>Throw any disc with CFD-surrogate aerodynamics and 6-DOF integration, and compare trajectories.</p>
+</header>
+<nav>
+  <a href="index.html">Lab home</a>
+  <a href="disc_designer.html">Disc designer</a>
+  <a href="wind_tunnel.html">Wind tunnel</a>
+  <a href="database.html">PDGA database</a>
+  <a href="flight_sim.html" class="active">Flight sim</a>
+  <a href="flight_game.html">Flight game</a>
+  <a href="docs.html">Docs</a>
+</nav>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Throw a disc: CFD-surrogate aerodynamics, 6-DOF integration</h2>
+    <div class="simrow">
+      <div class="sctrl" style="flex:2 1 210px"><label>Disc</label><select id="simdisc"></select></div>
+      <div class="sctrl" style="flex:0 1 110px"><label>Throw style</label>
+        <select id="simstyle"><option>RHBH</option><option>RHFH</option><option>LHBH</option><option>LHFH</option></select></div>
+      <div class="sctrl"><label>Speed <span class="val" id="sv_v"></span></label>
+        <input type="range" id="s_v" min="15" max="33" step="0.5" value="24"></div>
+      <div class="sctrl"><label>Launch angle <span class="val" id="sv_l"></span></label>
+        <input type="range" id="s_l" min="0" max="20" step="0.5" value="10"></div>
+      <div class="sctrl"><label>Tilt <span class="val" id="sv_h"></span></label>
+        <input type="range" id="s_h" min="-25" max="25" step="1" value="0"></div>
+      <div class="sctrl"><label>Nose angle <span class="val" id="sv_n"></span></label>
+        <input type="range" id="s_n" min="-5" max="10" step="0.5" value="0"></div>
+      <div class="sctrl" style="flex:0 1 auto"><button class="simbtn" id="simpin">Pin trajectory</button>
+        <button class="simbtn" id="simclear">Clear pins</button></div>
+    </div>
+    <div class="two">
+      <div><svg class="simview" id="simtop" viewBox="0 0 560 300" aria-label="top-down flight path"></svg></div>
+      <div><svg class="simview" id="simside" viewBox="0 0 560 300" aria-label="side-view flight path"></svg></div>
+    </div>
+    <div class="grid2" id="simtiles" style="margin-top:12px"></div>
+    <div class="note">Aerodynamic coefficients come from the CFD surrogate evaluated at the selected disc's
+      geometry, anchored to Kamaruddin's wind-tunnel measurements of real discs (<code>cfd/anchors/</code>);
+      the integrator adds gravity, spin, and gyroscopic precession (<code>cfd_flight.js</code>,
+      the same physics as <code>flight_sim.py</code>). Tilt with the edge down is a hyzer release and edge up is anhyzer;
+      nose angle pitches the nose up. Pin a trajectory, then change disc or throw to compare.</div>
+  </div>
+  <div class="two">
+    <div class="card">
+      <h2>Python reference: four presets, intermediate arm speeds</h2>
+      <img class="plot" src="flight_paths.png" alt="Simulated flight paths for putter, midrange, fairway and distance presets">
+      <div class="note">Produced by <code>flight_plots.py</code> from the 6-DOF simulator. Lift-supported glide,
+        gyroscopic precession, and low-speed fade emerge from the equations rather than being scripted.</div>
+    </div>
+    <div class="card">
+      <h2>Putter cross-section: geometry model output</h2>
+      <img class="plot" src="putter_cross_section.png" alt="Parametric putter cross-section from disc_model.py">
+      <div class="note">From <code>disc_model.py</code>: the same solid-of-revolution profile the designer app
+        and the Grasshopper component use.</div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Run it yourself</h2>
+    <p style="font-size:14px;margin:0"><code>python3 flight_sim.py</code> prints a single trajectory with touchdown stats.
+    <code>python3 flight_plots.py</code> regenerates the preset comparison figure.
+    Coefficients and caveats are in the Methods doc.</p>
+  </div>
+</div>
+
+<script src="disc_common.js"></script>
+<script src="pro_discs.js"></script>
+<script src="cfd_surrogate.js"></script>
+<script src="cfd_flight.js"></script>
+<script>
+/* ---- interactive flight simulator ---- */
+(function(){
+  const $=id=>document.getElementById(id);
+  const missing=[];
+  if(typeof CFDFlight==="undefined")missing.push("cfd_flight.js");
+  if(typeof CFD_SURROGATE==="undefined")missing.push("cfd_surrogate.js");
+  if(missing.length){$("simtiles").innerHTML=
+    '<div class="note">'+missing.join(", ")+' not found; the simulator needs these files.</div>';return;}
+  if(typeof PRO_DISCS==="undefined")window.PRO_DISCS=[];
+  const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  let simP={...PRESETS.Putter},simName="Putter archetype",last=null;
+  const pins=[];
+  const dsel=$("simdisc");
+  const og=document.createElement("optgroup");og.label="Archetypes";
+  Object.keys(PRESETS).forEach(k=>og.appendChild(new Option(k+" (archetype)","a:"+k)));
+  dsel.appendChild(og);
+  ["Putter","Midrange","Fairway","Distance"].forEach(cls=>{
+    const g=document.createElement("optgroup");g.label=cls+"s";
+    PRO_DISCS.forEach((d,i)=>{if(d.cls===cls)g.appendChild(new Option(d.name+" · "+d.mfr+" ("+d.fl.join("/")+")","p:"+i));});
+    dsel.appendChild(g);
+  });
+  dsel.addEventListener("change",()=>{
+    const v=dsel.value;
+    if(v.startsWith("a:")){simP={...PRESETS[v.slice(2)]};simName=v.slice(2)+" archetype";}
+    else{const d=PRO_DISCS[+v.slice(2)];simP=paramsFromCertified(d);simName=d.mfr+" "+d.name;}
+    run();
+  });
+  const S={v:$("s_v"),l:$("s_l"),h:$("s_h"),n:$("s_n")};
+  function labels(){
+    $("sv_v").textContent=(+S.v.value).toFixed(1)+" m/s ("+(S.v.value*2.23694).toFixed(0)+" mph)";
+    $("sv_l").textContent=(+S.l.value).toFixed(1)+"°";
+    $("sv_h").textContent=+S.h.value===0?"flat":Math.abs(+S.h.value)+"° edge "+(S.h.value>0?"down":"up");
+    $("sv_n").textContent=(+S.n.value).toFixed(1)+"°";
+  }
+  Object.values(S).forEach(el=>el.addEventListener("input",()=>{labels();run();}));
+  $("simstyle").addEventListener("change",run);
+  $("simpin").addEventListener("click",()=>{if(last){pins.push(last);if(pins.length>4)pins.shift();draw();}});
+  $("simclear").addEventListener("click",()=>{pins.length=0;draw();});
+
+  const FT=1/0.3048;
+  function run(){
+    const st=$("simstyle").value;
+    const handed=(st==="RHBH"||st==="LHFH")?"RHBH":"LHBH";
+    const mp=massProperties(simP);
+    const res=CFDFlight.simulateFlight(simP,mp,{v0:+S.v.value,launch_deg:+S.l.value,
+      hyzer_deg:+S.h.value,nose_deg:+S.n.value,handed});
+    const step=Math.max(1,Math.floor(res.x.length/300)),pts=[];
+    for(let i=0;i<res.x.length;i+=step)pts.push([res.x[i]*FT,res.y[i]*FT,res.z[i]*FT]);
+    const e=res.x.length-1;pts.push([res.x[e]*FT,res.y[e]*FT,res.z[e]*FT]);
+    last={pts,label:simName+" · "+(+S.v.value).toFixed(0)+" m/s "+st,
+      dist:res.distance_ft,apex:res.apex_m*FT,tsec:res.flight_time_s,lat:res.lateral_max_m*FT};
+    draw();tiles();
+  }
+  function tiles(){
+    const t=[["Distance",last.dist.toFixed(0),"ft"],["Apex",last.apex.toFixed(0),"ft"],
+      ["Flight time",last.tsec.toFixed(1),"s"],
+      ["Peak drift",Math.abs(last.lat).toFixed(0),"ft "+(last.lat>0.5?"left":last.lat<-0.5?"right":"")]];
+    $("simtiles").innerHTML=t.map(x=>
+      '<div class="tile"><div class="k">'+x[0]+'</div><div class="v">'+x[1]+' <small>'+x[2]+'</small></div></div>').join("");
+  }
+  function draw(){
+    const all=pins.concat(last?[last]:[]);
+    if(!all.length)return;
+    let maxX=300,maxY=50,maxZ=40;
+    all.forEach(p=>p.pts.forEach(q=>{maxX=Math.max(maxX,q[0]);maxY=Math.max(maxY,Math.abs(q[1]));maxZ=Math.max(maxZ,q[2]);}));
+    maxX*=1.06;maxY*=1.25;maxZ*=1.3;
+    const W=560,H=300,padL=40,padR=14,padT=18,padB=30;
+    const X=x=>padL+x/maxX*(W-padL-padR);
+    const Yt=y=>H/2-y/maxY*(H-padT-padB)/2;
+    const Ys=z=>H-padB-z/maxZ*(H-padT-padB);
+    function frame(axisLabel,horizonY){
+      let s="";
+      for(let g=100;g<maxX;g+=100)
+        s+='<line x1="'+X(g).toFixed(1)+'" y1="'+padT+'" x2="'+X(g).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#eef2f0"/>'+
+           '<text x="'+X(g).toFixed(1)+'" y="'+(H-12)+'" font-size="10" fill="#5d6f66" text-anchor="middle">'+g+' ft</text>';
+      s+='<line x1="'+padL+'" y1="'+horizonY+'" x2="'+(W-padR)+'" y2="'+horizonY+'" stroke="#c9d6cf"/>';
+      s+='<text x="'+padL+'" y="12" font-size="10" fill="#5d6f66">'+axisLabel+'</text>';
+      return s;
+    }
+    const poly=(p,proj,color,wd,dash)=>'<polyline fill="none" stroke="'+color+'" stroke-width="'+wd+'" '+
+      (dash?'stroke-dasharray="5 4" ':'')+'points="'+p.pts.map(q=>X(q[0]).toFixed(1)+","+proj(q).toFixed(1)).join(" ")+'"/>';
+    const pinCol="#9db3a8";
+    let top=frame("top view · up = thrower's left",H/2);
+    pins.forEach(p=>top+=poly(p,q=>Yt(q[1]),pinCol,1.6,true));
+    if(last)top+=poly(last,q=>Yt(q[1]),"#12805a",2.6,false);
+    pins.forEach((p,i)=>top+='<text x="'+(W-padR)+'" y="'+(14+12*i)+'" font-size="9" fill="'+pinCol+'" text-anchor="end">'+esc(p.label)+'</text>');
+    if(last)top+='<text x="'+(W-padR)+'" y="'+(14+12*pins.length)+'" font-size="9" fill="#12805a" text-anchor="end">'+esc(last.label)+'</text>';
+    top+='<circle cx="'+X(0)+'" cy="'+(H/2)+'" r="4" fill="#0c5e42"/>';
+    $("simtop").innerHTML=top;
+    let side=frame("side view · altitude",H-padB);
+    pins.forEach(p=>side+=poly(p,q=>Ys(q[2]),pinCol,1.6,true));
+    if(last){side+=poly(last,q=>Ys(q[2]),"#2563b0",2.6,false);
+      side+='<circle cx="'+X(0)+'" cy="'+Ys(last.pts[0][2]).toFixed(1)+'" r="4" fill="#0c5e42"/>';}
+    $("simside").innerHTML=side;
+  }
+  labels();run();
+})();
+</script>
+</body>
+</html>

@@ -4,25 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Parametric Disc Designer</title>
+<link rel="stylesheet" href="site.css">
 <style>
   :root{
-    --bg:#eef2f0; --panel:#ffffff; --ink:#16241d; --muted:#5d6f66;
-    --line:#d6e0da; --accent:#12805a; --accent-d:#0c5e42;
     --pass:#16a34a; --fail:#dc2626;
     --speed:#2563eb; --glide:#16a34a; --turn:#f59e0b; --fade:#dc2626;
-    --shadow:0 1px 3px rgba(20,40,30,.08),0 6px 24px rgba(20,40,30,.06);
   }
-  *{box-sizing:border-box}
-  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-       background:var(--bg);color:var(--ink)}
-  header{padding:18px 24px;background:linear-gradient(100deg,var(--accent-d),var(--accent));color:#fff}
-  header h1{margin:0;font-size:19px;letter-spacing:.2px}
-  header p{margin:4px 0 0;font-size:13px;opacity:.9}
-  .wrap{max-width:1240px;margin:20px auto;padding:0 20px;display:grid;
-        grid-template-columns:340px 1fr;gap:20px;align-items:start}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-        box-shadow:var(--shadow);padding:16px 18px}
-  .card h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+  .wrap{max-width:1240px;display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+  .card{margin-bottom:0}
   .cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:10px 0 5px}
   .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
   .presets button,.presets .pbtn{flex:1 1 45%;padding:8px 8px;border:1px solid var(--line);background:#fff;color:var(--ink);
@@ -43,7 +32,6 @@
   .slider label{font-size:13px;font-weight:600}
   .slider .val{font-variant-numeric:tabular-nums;font-size:13px;color:var(--accent-d);font-weight:700}
   .slider .hint{font-size:11px;color:var(--muted)}
-  input[type=range]{width:100%;accent-color:var(--accent);height:22px}
   .stage{display:grid;grid-template-columns:1fr;gap:20px}
   .disc-view{position:relative}
   svg{width:100%;height:auto;display:block}
@@ -52,11 +40,6 @@
   .legalbar.no{background:#fdeaea;color:#a71d1d;border:1px solid #f3c0c0}
   .legalbar .dot{width:11px;height:11px;border-radius:50%}
   .legalbar.ok .dot{background:var(--pass)} .legalbar.no .dot{background:var(--fail)}
-  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
-  .tile{background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-  .tile .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-  .tile .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
-  .tile .v small{font-size:12px;font-weight:600;color:var(--muted)}
   table.checks{width:100%;border-collapse:collapse;font-size:13px}
   table.checks td,table.checks th{padding:7px 6px;border-bottom:1px solid var(--line)}
   table.checks th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:right;font-weight:700}
@@ -71,16 +54,12 @@
   .fnum.ghost{background:#fff!important;border:2px dashed var(--line);color:var(--ink)}
   .fnum.ghost .l{color:var(--muted)}
   .flightlbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px}
-  .note{font-size:11.5px;color:var(--muted);margin-top:10px}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
   .match{display:flex;align-items:baseline;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font-size:13px}
   .match:last-child{border-bottom:none}
   .match .rank{font-weight:800;color:var(--accent-d);font-size:15px;min-width:20px}
   .match .name{font-weight:700}
   .match .mfr{color:var(--muted);font-size:12px}
   .match .specs{margin-left:auto;font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);text-align:right}
-  .protag{display:inline-block;background:#eaf5f0;border:1px solid #b6e2c9;color:#0c5e42;
-          border-radius:7px;padding:2px 8px;font-size:11.5px;font-weight:700;margin-left:8px}
   .handtoggle{display:flex;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;width:fit-content}
   .handtoggle button{border:none;background:#fff;font:inherit;font-size:11.5px;font-weight:700;
     padding:6px 11px;cursor:pointer;color:var(--muted);border-right:1px solid var(--line)}
@@ -100,6 +79,15 @@
   <h1>Parametric Disc Designer</h1>
   <p>Shape a PDGA-legal disc in real time, starting from a pro-disc preset derived from PDGA-certified measurements.</p>
 </header>
+<nav>
+  <a href="index.html">Lab home</a>
+  <a href="disc_designer.html" class="active">Disc designer</a>
+  <a href="wind_tunnel.html">Wind tunnel</a>
+  <a href="database.html">PDGA database</a>
+  <a href="flight_sim.html">Flight sim</a>
+  <a href="flight_game.html">Flight game</a>
+  <a href="docs.html">Docs</a>
+</nav>
 
 <div class="wrap">
   <!-- CONTROLS -->

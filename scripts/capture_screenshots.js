@@ -13,9 +13,9 @@ const OUT = '/Users/fields/discgolf/img';
 const SHOTS = [
   { name: 'designer',    url: BASE + '/disc_designer.html', wait: 1500 },
   { name: 'wind_tunnel', url: BASE + '/wind_tunnel.html',   wait: 9000 },
-  { name: 'database',    url: BASE + '/index.html#db',      wait: 1500 },
-  { name: 'flight_sim',  url: BASE + '/index.html#sim',     wait: 1500 },
-  { name: 'docs',        url: BASE + '/index.html#docs',    wait: 2000 },
+  { name: 'database',    url: BASE + '/database.html',      wait: 1500 },
+  { name: 'flight_sim',  url: BASE + '/flight_sim.html',    wait: 1500 },
+  { name: 'docs',        url: BASE + '/docs.html',          wait: 2000 },
 ];
 
 (async () => {

@@ -1,0 +1,33 @@
+/* Shared look for every lab page. Page-specific styles stay in each page's
+   <style> block and may override these. */
+:root{
+  --bg:#eef2f0; --panel:#ffffff; --ink:#16241d; --muted:#5d6f66;
+  --line:#d6e0da; --accent:#12805a; --accent-d:#0c5e42;
+  --shadow:0 1px 3px rgba(20,40,30,.08),0 6px 24px rgba(20,40,30,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+     background:var(--bg);color:var(--ink)}
+header{padding:20px 24px 16px;background:linear-gradient(100deg,var(--accent-d),var(--accent));color:#fff}
+header h1{margin:0;font-size:21px;letter-spacing:.2px}
+header p{margin:5px 0 0;font-size:13px;opacity:.92;max-width:760px}
+nav{display:flex;gap:2px;background:var(--accent-d);padding:0 24px;flex-wrap:wrap}
+nav a{color:#cfe8dd;font-size:13.5px;font-weight:700;padding:11px 16px;
+  border-bottom:3px solid transparent;text-decoration:none;display:block}
+nav a:hover{color:#fff}
+nav a.active{color:#fff;border-bottom-color:#7fd4b2}
+.wrap{max-width:1180px;margin:20px auto;padding:0 20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+      box-shadow:var(--shadow);padding:18px 20px;margin-bottom:20px}
+.card h2{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+input[type=range]{width:100%;accent-color:var(--accent);height:22px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.tile{background:#f7faf8;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.tile .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.tile .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.tile .v small{font-size:12px;font-weight:600;color:var(--muted)}
+.note{font-size:11.5px;color:var(--muted);margin-top:10px}
+.protag{display:inline-block;background:#eaf5f0;border:1px solid #b6e2c9;color:#0c5e42;
+        border-radius:7px;padding:2px 8px;font-size:11.5px;font-weight:700;margin-left:8px}

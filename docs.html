@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methods &amp; Sources</title>
+<link rel="stylesheet" href="site.css">
+<style>
+  .doctabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .doctabs button{padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:9px;
+    font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  .doctabs button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .md h1{font-size:21px;margin:4px 0 12px}
+  .md h2{font-size:17px;margin:22px 0 8px;color:var(--accent-d);text-transform:none;letter-spacing:0}
+  .md h3{font-size:14.5px;margin:16px 0 6px}
+  .md p,.md li{font-size:14px}
+  .md code{background:#f0f5f2;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12.5px}
+  .md table{border-collapse:collapse;margin:10px 0;font-size:13px;width:100%}
+  .md th,.md td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  .md th{background:#f7faf8;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+  .md a{color:var(--accent-d)}
+  .md blockquote{border-left:3px solid var(--line);margin:8px 0;padding:2px 14px;color:var(--muted)}
+  .servewarn{background:#fff7e6;border:1px solid #f1dfae;color:#7a5b12;border-radius:10px;
+    padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+  .servewarn code{background:#fff;border:1px solid #f1dfae;border-radius:5px;padding:1px 5px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Methods &amp; Sources</h1>
+  <p>What's physically grounded, what's estimated, and where every number comes from.</p>
+</header>
+<nav>
+  <a href="index.html">Lab home</a>
+  <a href="disc_designer.html">Disc designer</a>
+  <a href="wind_tunnel.html">Wind tunnel</a>
+  <a href="database.html">PDGA database</a>
+  <a href="flight_sim.html">Flight sim</a>
+  <a href="flight_game.html">Flight game</a>
+  <a href="docs.html" class="active">Docs</a>
+</nav>
+
+<div class="wrap">
+  <div class="servewarn" id="servewarn">
+    This page loads the docs with <code>fetch()</code>, which browsers block on
+    <code>file://</code>. Serve the folder instead: <code>python3 -m http.server</code> in <code>~/discgolf</code>,
+    then open <code>http://localhost:8000/</code>.
+  </div>
+
+  <div class="card">
+    <div class="doctabs" id="doctabs">
+      <button data-doc="docs/METHODS.md" class="active">Methods: what's grounded</button>
+      <button data-doc="docs/PDGA_technical_standards.md">PDGA technical standards</button>
+      <button data-doc="docs/SOURCES.md">Sources &amp; bibliography</button>
+    </div>
+    <div class="md" id="mdout">Loading…</div>
+  </div>
+  <div class="card">
+    <h2>Pipeline status</h2>
+    <table class="md" style="border-collapse:collapse;width:100%;font-size:13.5px">
+      <tr><td style="padding:6px 10px">✅ <b>Geometry model</b>: solid-of-revolution profile, exact mass/inertia/CG, live PDGA legality (<code>disc_model.py</code>, designer app, Grasshopper)</td></tr>
+      <tr><td style="padding:6px 10px">✅ <b>Data tier</b>: full PDGA certified-disc database; pro-disc presets derived from certified specs</td></tr>
+      <tr><td style="padding:6px 10px">✅ <b>Flight sim</b>: 6-DOF dynamics, validated against Kamaruddin's published golf-disc flights: putter/mid ranges within ±3% under matched assumptions (<code>flight_sim.py</code>, <code>cfd/verify_trajectory.py</code>)</td></tr>
+      <tr><td style="padding:6px 10px">✅ <b>CFD sweep</b>: 300 geometries × 7 angles of steady RANS (k-ω SST), 2,086 converged solves (<code>cfd/bigsweep/</code>)</td></tr>
+      <tr><td style="padding:6px 10px">✅ <b>Surrogate model</b>: degree-2 polynomial fit of the sweep, anchored to Kamaruddin's wind-tunnel level via three measured discs (lift ×0.85, drag ×0.98); drives the designer's flight path and the wind-tunnel charts (<code>cfd_surrogate.js</code>, <code>cfd/anchors/</code>)</td></tr>
+      <tr><td style="padding:6px 10px">✅ <b>CFD flight numbers</b>: speed/glide/turn/fade computed from the surrogate's aero coefficients, calibrated to 43 pro discs' ratings, LOO-validated (<code>scripts/fit_cfd_flight_numbers.py</code>; geometry-fit fallback: <code>scripts/fit_flight_numbers.py</code>)</td></tr>
+      <tr><td style="padding:6px 10px">⏳ <b>Spinning CFD</b>: add rotation (MRF) to the RANS runs to capture spin-dependent effects</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+if(location.protocol==="file:")document.getElementById("servewarn").style.display="block";
+
+/* ---- minimal markdown renderer (headings, tables, lists, emphasis, code, links) ---- */
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function inline(s){
+  return s
+    .replace(/`([^`]+)`/g,(m,c)=>"<code>"+c+"</code>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[^*])\*\*([^*]+)\*\*/g,'$1<b>$2</b>')
+    .replace(/(^|[^*])\*([^*]+)\*/g,'$1<i>$2</i>')
+    .replace(/(^|\s)(https?:\/\/[^\s<]+)/g,'$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+}
+function mdToHtml(md){
+  const lines=md.split("\n");let out=[],i=0,inList=false;
+  const closeList=()=>{if(inList){out.push("</ul>");inList=false;}};
+  while(i<lines.length){
+    const L=lines[i];
+    if(/^\s*\|/.test(L)&&i+1<lines.length&&/^\s*\|[\s\-|:]+\|\s*$/.test(lines[i+1])){
+      closeList();
+      const cells=r=>r.trim().replace(/^\||\|$/g,"").split("|").map(c=>inline(esc(c.trim())));
+      out.push("<table><thead><tr>"+cells(L).map(c=>"<th>"+c+"</th>").join("")+"</tr></thead><tbody>");
+      i+=2;
+      while(i<lines.length&&/^\s*\|/.test(lines[i])){
+        out.push("<tr>"+cells(lines[i]).map(c=>"<td>"+c+"</td>").join("")+"</tr>");i++;
+      }
+      out.push("</tbody></table>");continue;
+    }
+    const h=L.match(/^(#{1,4})\s+(.*)/);
+    if(h){closeList();out.push(`<h${h[1].length}>`+inline(esc(h[2]))+`</h${h[1].length}>`);i++;continue;}
+    const li=L.match(/^\s*[-*]\s+(.*)/);
+    if(li){if(!inList){out.push("<ul>");inList=true;}
+      let item=li[1];
+      // continuation lines (indented, not new bullet/blank)
+      while(i+1<lines.length&&/^\s+\S/.test(lines[i+1])&&!/^\s*[-*]\s/.test(lines[i+1])&&!/^\s*\|/.test(lines[i+1])){item+=" "+lines[++i].trim();}
+      out.push("<li>"+inline(esc(item))+"</li>");i++;continue;}
+    const num=L.match(/^\s*(\d+)\.\s+(.*)/);
+    if(num){closeList();
+      let item=num[2];
+      while(i+1<lines.length&&/^\s+\S/.test(lines[i+1])&&!/^\s*\d+\.\s/.test(lines[i+1])){item+=" "+lines[++i].trim();}
+      out.push("<p><b>"+num[1]+".</b> "+inline(esc(item))+"</p>");i++;continue;}
+    if(/^\s*$/.test(L)){closeList();i++;continue;}
+    closeList();
+    let para=L;
+    while(i+1<lines.length&&!/^\s*$/.test(lines[i+1])&&!/^(#|\s*[-*]\s|\s*\||\s*\d+\.)/.test(lines[i+1])){para+=" "+lines[++i];}
+    out.push("<p>"+inline(esc(para))+"</p>");i++;
+  }
+  closeList();return out.join("\n");
+}
+async function loadDoc(path){
+  const out=document.getElementById("mdout");
+  try{
+    const r=await fetch(path);
+    if(!r.ok)throw new Error(r.status);
+    out.innerHTML=mdToHtml(await r.text());
+  }catch(e){
+    out.innerHTML='<p>Could not load <code>'+esc(path)+'</code>; serve this folder over http '+
+      '(<code>python3 -m http.server</code>) rather than opening the file directly.</p>';
+  }
+}
+document.querySelectorAll("#doctabs button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#doctabs button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");loadDoc(b.dataset.doc);
+}));
+loadDoc(document.querySelector("#doctabs button.active").dataset.doc);
+</script>
+</body>
+</html>
